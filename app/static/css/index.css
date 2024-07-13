@@ -1,0 +1,110 @@
+.dark-background {
+    background-color: #333;
+    color: #ccc; /* Couleur de texte gris clair */
+    overflow:auto;
+}
+
+header ul {
+    list-style-type: none;
+    margin: 10px;
+    padding: 0;
+    overflow:auto;
+    background-color: #333;
+    display: flex;
+    justify-content: space-around;
+}
+
+header li {
+    border: 1px solid #fff;
+    padding: 14px 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+header li > * {
+    display: block;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+}
+
+header li:hover {
+    filter: brightness(80%);
+}
+
+header li:active {
+    filter: brightness(120%) saturate(150%);
+}
+body{
+    background-color: #f0f0f0;
+}
+main {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 10px;
+}
+main section{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    margin-bottom: 1%;
+
+    background-color: #333;
+    color: #fff;
+
+
+}
+main section > * {
+    width: auto;
+    height: 100%;
+    padding: 10px;
+}
+
+#loginForm {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    width: 90%;
+    height: 90%;
+    padding: 10%;
+    background-color: #333;
+    color: #fff;
+}
+
+#loginForm input,
+#loginForm button {
+    width: 100%;
+    padding: 5%,5%,5%,5%;
+    margin-bottom: 10px;
+}
+
+#loginForm button {
+    background-color: #fff;
+    color: #000;
+}
+
+input,select,textarea,button{
+    border: 1px solid #333;
+    border-radius: 5px;
+}
+input:disabled, select:disabled, textarea:disabled, button:disabled {
+    border: 1px solid #444;
+    background-color: #3b3b3b;
+}
+
+#loginForm a {
+    color: #0099ff; /* Bleu clair */
+    text-decoration: none;
+}
+#loginForm a:hover {
+    color: #00ccff; /* Bleu clair plus intense lors du survol */
+}
+
+#loginForm a:active {
+    color: #0066ff; /* Bleu plus foncé lors du clic */
+}

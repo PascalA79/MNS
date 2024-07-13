@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration</title>
+    <link rel="stylesheet" href="/css/crud.css">
+    <script defer src="../scripts/jquery.js"></script>
+    <script defer src= "../scripts/functions.js"></script>
+    <script defer src="../scripts/admin/crud.js"></script>
+    <script defer src="../scripts/admin/index.js"></script>
+</head>
+<body>
+    <header></header>
+    <main>
+        <section id="users" class="dark-background"></section>
+        <section id="roles" class="dark-background"></section>
+        <section id="streamers" class="dark-background"></section>
+        <section id="games" class="dark-background"></section>
+        <section id="discord_app" class="dark-background"></section>
+    </main>
+    <footer></footer>
+    
+<script>
+    document.addEventListener("DOMContentLoaded", async function() {
+        fillHeader('{{pseudo}}', {{ roles | tojson }});
+        await createAdminPannel()
+    })
+</script>
+
+</body>
+</html>

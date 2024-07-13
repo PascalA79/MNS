@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="scripts/jquery.js"></script>
+    <script src="scripts/functions.js"></script>
+    <title>Register</title>
+</head>
+<body>
+    <header></header>
+    <main class="dark-background">
+        <article id="loginForm">
+            <form action="/api/users/self" method="POST">
+                <label for="pseudo">Pseudo</label><input id="pseudo" name="pseudo"type="text">
+                <label for="password">Mot de passe</label><input id="password" name="password" type="password">
+                <label for="password_confirmation">Confirmer le mot de passe</label><input id="password_confirmation" name="password_confirmation" type="password">
+                <button type="submit">S'inscrire</button>
+            </form>
+            <div id="code">
+                
+            </div>
+                
+        </article>
+        <script>
+            fillHeader('{{pseudo}}', {{ roles | tojson }})
+            // On form submit, we prevent the default behavior and send the form data to the server
+            $('#loginForm form').submit(function(event) {
+                event.preventDefault()
+                if ($('#password').val() !== $('#password_confirmation').val()) {
+                    alert('Les mots de passe ne correspondent pas')
+                    return
+                }
+                $.ajax({
+                    url: '/api/users/self',
+                    method: 'POST',
+                    data: {
+                        pseudo: $('#pseudo').val(),
+                        password: $('#password').val(),
+                    },
+                    success: function(data) {
+                        $('#code').html(
+                            `<div>Vous avez été inscrit\nConnectez vous sur discord et entrez</div>
+                            <div><code>!login ${$('#pseudo').val()} ${data.code}</code></div>
+                            <div>pour confirmer votre inscription</div>`)
+                    }
+                })
+            })
+        </script>
+    </main>
+</body>
+</html>

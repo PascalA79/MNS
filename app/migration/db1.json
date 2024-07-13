@@ -1,0 +1,243 @@
+{
+    "roles": [
+        {
+            "name": "admin",
+            "id": 1,
+            "id_public": "c41076b4-084c-465f-95c7-261adfc30253",
+            "created_at": "2024-06-27 14:53:52",
+            "updated_at": "2024-06-27 14:53:52"
+        },
+        {
+            "name": "modo",
+            "id": 2,
+            "id_public": "2f4fc72c-aa8a-420e-9c3b-cb1732e56360",
+            "created_at": "2024-06-27 14:53:52",
+            "updated_at": "2024-06-27 14:53:52"
+        },
+        {
+            "name": "verified",
+            "id": 3,
+            "id_public": "41ef37bb-9ab2-4f08-9578-a2c784025051",
+            "created_at": "2024-06-27 14:53:52",
+            "updated_at": "2024-06-27 14:53:52"
+        },
+        {
+            "name": "sudo",
+            "id": 4,
+            "id_public": "978feb81-18f9-4460-8efb-a453ea4a97cd",
+            "created_at": "2024-06-30 19:28:13",
+            "updated_at": "2024-06-30 19:28:13"
+        }
+    ],
+    "userroles": [
+        {
+            "user_id": 1,
+            "role_id": 1,
+            "id": 1,
+            "id_public": "b887a338-08f4-4648-8154-2febda793120",
+            "created_at": "2024-06-28 15:46:30",
+            "updated_at": "2024-06-28 15:46:30"
+        },
+        {
+            "user_id": 1,
+            "role_id": 2,
+            "id": 2,
+            "id_public": "9870362f-0aff-4ae2-8821-2fa91f91c09e",
+            "created_at": "2024-06-28 15:46:30",
+            "updated_at": "2024-06-28 15:46:30"
+        },
+        {
+            "user_id": 1,
+            "role_id": 3,
+            "id": 3,
+            "id_public": "c1af2996-7230-4032-ad5a-b36b942e5126",
+            "created_at": "2024-06-28 15:46:30",
+            "updated_at": "2024-06-28 15:46:30"
+        }
+    ],
+    "checkusers": [],
+    "users": [
+        {
+            "pseudo": "PascalA79",
+            "password": "$2b$12$VJTV15HsWvGvD024nKnHc.Dq3mMexfhfhnwfccgnmHBGT.Zbr1Dp.",
+            "id": 1,
+            "id_public": "c7f93994-6ce4-4fa0-97cf-bf3b24040ff9",
+            "created_at": "2024-06-27 14:53:52",
+            "updated_at": "2024-06-28 15:46:30"
+        }
+    ],
+    "streamers": [
+        {
+            "pseudo": "PascalA79",
+            "id_twitch": 476783337,
+            "id": 1,
+            "id_public": "ecd30ae8-1be8-449b-921d-afacd7a6684f",
+            "created_at": "2024-06-28 13:33:57",
+            "updated_at": "2024-06-30 00:43:26"
+        },
+        {
+            "pseudo": "Muuuche",
+            "id_twitch": 740216430,
+            "id": 2,
+            "id_public": "b2be398b-b95d-40e2-a190-463e5c62cc7b",
+            "created_at": "2024-06-28 15:37:54",
+            "updated_at": "2024-06-30 00:43:23"
+        },
+        {
+            "pseudo": "Aurateur",
+            "id_twitch": 107536229,
+            "id": 3,
+            "id_public": "2a21cec2-6f5f-4243-a9e0-3c91a63ee7a3",
+            "created_at": "2024-06-30 04:25:48",
+            "updated_at": "2024-06-30 04:25:48"
+        },
+        {
+            "pseudo": "Keiichi",
+            "id_twitch": 89446383,
+            "id": 4,
+            "id_public": "c310690d-b55e-404a-927a-828278cb05ad",
+            "created_at": "2024-06-30 13:21:29",
+            "updated_at": "2024-06-30 13:21:29"
+        },
+        {
+            "pseudo": "Baishi_",
+            "id_twitch": 712781192,
+            "id": 5,
+            "id_public": "a7198f30-2bf7-433f-be0c-793f304b5fa2",
+            "created_at": "2024-06-30 13:54:55",
+            "updated_at": "2024-06-30 13:54:55"
+        },
+        {
+            "pseudo": "DGR_Dave",
+            "id_twitch": 123131262,
+            "id": 6,
+            "id_public": "14d3e190-582e-4e4f-afb6-247411e35644",
+            "created_at": "2024-06-30 18:13:40",
+            "updated_at": "2024-06-30 18:13:40"
+        },
+        {
+            "pseudo": "LilKirbs",
+            "id_twitch": 116029638,
+            "id": 7,
+            "id_public": "b762f5b6-0632-47b9-8fba-3b8874d022e2",
+            "created_at": "2024-06-30 19:20:39",
+            "updated_at": "2024-06-30 19:20:39"
+        }
+    ],
+    "tokens": [],
+    "discordusers": [
+        {
+            "user_id": 1,
+            "discord_id": "457863452933881897",
+            "id": 1,
+            "id_public": "af8bfc47-2268-49d8-ba43-e05f8d1a842e",
+            "created_at": "2024-06-27 14:53:52",
+            "updated_at": "2024-06-27 14:53:52"
+        }
+    ],
+    "discord_apps": [
+        {
+            "name": "PascalA79",
+            "id_guild": 475762541595721738,
+            "id_channel": 1158379451093098598,
+            "id": 1,
+            "id_public": "6ed7f00b-ae24-4493-a7f5-2dea0b288d25",
+            "created_at": "2024-06-28 14:04:03",
+            "updated_at": "2024-06-30 01:16:24"
+        }
+    ],
+    "discord_streamers": [
+        {
+            "app_id": 1,
+            "streamer_id": 1,
+            "id": 1,
+            "id_public": "91614267-7cb6-4668-bf8b-f2f008e51893",
+            "created_at": "2024-06-30 01:16:24",
+            "updated_at": "2024-06-30 01:16:24"
+        },
+        {
+            "app_id": 1,
+            "streamer_id": 2,
+            "id": 3,
+            "id_public": "2d609cf4-6aea-4d12-9a70-d64f87c67307",
+            "created_at": "2024-06-30 04:20:16",
+            "updated_at": "2024-06-30 04:20:16"
+        },
+        {
+            "app_id": 1,
+            "streamer_id": 3,
+            "id": 4,
+            "id_public": "4a19fad5-1fd7-4eb3-baa7-95d2d2839cfe",
+            "created_at": "2024-06-30 04:25:48",
+            "updated_at": "2024-06-30 04:25:48"
+        },
+        {
+            "app_id": 1,
+            "streamer_id": 4,
+            "id": 5,
+            "id_public": "9802b7b2-be27-4ea9-97eb-0e91b35e124b",
+            "created_at": "2024-06-30 13:21:29",
+            "updated_at": "2024-06-30 13:21:29"
+        },
+        {
+            "app_id": 1,
+            "streamer_id": 5,
+            "id": 6,
+            "id_public": "b578aa98-7578-4d01-8c7f-c1c3667e8e15",
+            "created_at": "2024-06-30 13:54:55",
+            "updated_at": "2024-06-30 13:54:55"
+        },
+        {
+            "app_id": 1,
+            "streamer_id": 6,
+            "id": 7,
+            "id_public": "f4b43734-da71-4c19-918d-5ac16d266b7c",
+            "created_at": "2024-06-30 18:13:40",
+            "updated_at": "2024-06-30 18:13:40"
+        },
+        {
+            "app_id": 1,
+            "streamer_id": 7,
+            "id": 8,
+            "id_public": "d397f14a-70d6-4d90-a664-3c36b0c6599b",
+            "created_at": "2024-06-30 19:20:39",
+            "updated_at": "2024-06-30 19:20:39"
+        }
+    ],
+    "games": [
+        {
+            "name": "Super Mario Maker 2",
+            "id_twitch": 511399,
+            "id": 1,
+            "id_public": "66073baa-6e81-4f1f-8c1c-0416e5924d96",
+            "created_at": "2024-06-28 13:10:19",
+            "updated_at": "2024-06-28 13:10:19"
+        },
+        {
+            "name": "Super Mario Maker",
+            "id_twitch": 490608,
+            "id": 2,
+            "id_public": "7276f83a-32ac-48e3-b8de-584d0f365c95",
+            "created_at": "2024-06-28 15:37:39",
+            "updated_at": "2024-06-28 15:37:39"
+        }
+    ],
+    "discord_game": [
+        {
+            "app_id": 1,
+            "game_id": 1,
+            "id": 1,
+            "id_public": "c5a6c0d3-d5a9-46fd-ae35-acda05bb1498",
+            "created_at": "2024-06-30 01:16:24",
+            "updated_at": "2024-06-30 01:16:24"
+        },
+        {
+            "app_id": 1,
+            "game_id": 2,
+            "id": 2,
+            "id_public": "18d2860c-36b9-454d-904f-d7a493425de8",
+            "created_at": "2024-06-30 01:16:24",
+            "updated_at": "2024-06-30 01:16:24"
+        }
+    ]
+}

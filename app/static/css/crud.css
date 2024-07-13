@@ -1,0 +1,64 @@
+table {
+    border-collapse: collapse;
+}
+.crud th,.crud td{
+    min-width: 6em;
+    width: 10em;
+}
+.crud th:has(button){
+    min-width: 7;
+    width: 15em;
+}
+.crud th, .crud td{
+    border: 1px solid black;
+    text-align: left;
+    padding: 4px;
+    
+}
+.crud td > *, .crud th > * {
+    width: 100%;
+    box-sizing: border-box;
+}
+.crud td > div * {    
+    width: 50%;
+}
+.crud button{
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.crud input[type="checkbox"], .crud input[type="radio"]{
+    width: 1em;
+    height: 1em;
+}
+.crud .multichoice{
+    width: 100%;
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    align-items: center;
+    justify-content: center;
+
+}
+.crud .multichoice > *{
+    width: 100%;
+}
+.crud .multichoice:has(.message_error){
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+.crud *{
+    /*metre tout en haut de son élément parent*/
+    vertical-align: top;
+}
+.erreur_CRUD{
+    border: 3px solid red;
+    color: red;
+    background-color: yellow;     
+}
+.crud .message_error{
+    color: red;
+    font-size: 0.8em;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
