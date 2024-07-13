@@ -6,6 +6,7 @@ DISCORD_PUBLIC_KEY = os.getenv("DISCORD_PUBLIC_KEY")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
+DISCORD_ADMIN_ID = os.getenv("DISCORD_ADMIN_ID")
 
 class Config:
     @staticmethod
@@ -15,29 +16,20 @@ class Config:
         user = User()
         user_role = UserRole()
         discord_user = DiscordUser()
-        admin, errors_admin = role.insert({'name':'admin'})
-        modo, errors_modo = role.insert({'name':'modo'})
-        verified, errors_verified = role.insert({'name':'verified'})
-        sudo, errors_sudo = role.insert({'name':'sudo'})
-        owner, errors_owner = role.insert({'name':'owner'})
-        admin_user, errors_user = user.insert({'pseudo':'PascalA79', 'password':'qwerty123!'})
-        if not admin_user:
-            return False
-        if not errors_admin:
-            admin_user, errors_admin_user =  user_role.insert(admin_user.id_public,admin.id_public)
+        role.insert({'name':'admin'})
+        role.insert({'name':'modo'})
+        role.insert({'name':'verified'})
+        role.insert({'name':'sudo'})
+        role.insert({'name':'owner'})
+        user.insert({'pseudo':'admin', 'password':'qwerty123!'})
 
-        if not errors_modo:
-            modo_user, errors_modo_user =  user_role.insert(admin_user.id_public,modo.id_public)
+        admin = user.getAll(**{'pseudo':'=admin'}).pop(0)
+        admin_role = role.getAll(**{'name':'=admin'}).pop(0)
+        verified_role = role.getAll(**{'name':'=verified'}).pop(0)
 
-        if not errors_verified:
-            verified_user, errors_verified_user =  user_role.insert(admin_user.id_public,verified.id_public)
-
-        discord_user, errors_discord_user = discord_user.insert({'user_id':admin_user.id, 'discord_id': 457863452933881897})
-
-        if not(admin and modo and admin_user and admin_user and modo_user and verified_user and errors_admin and errors_modo and errors_user and errors_admin_user and errors_modo_user and errors_verified and errors_verified_user and discord_user and errors_discord_user):
-            return False
-                
-        return True
+        user_role.insert(admin.id_public,admin_role.id_public)
+        user_role.insert(admin.id_public,verified_role.id_public)
+        discord_user.insert({'user_id':admin.id, 'discord_id': DISCORD_ADMIN_ID})
         
     @staticmethod
     def default() -> None:
