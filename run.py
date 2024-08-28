@@ -20,7 +20,7 @@ async def main():
     notif_discord = NotifDiscord()
     await asyncio.gather(
         # for development purposes
-        # check_streamers_periodically(notif_discord),
+        check_streamers_periodically(notif_discord),
         notif_discord.run(),
     )
 

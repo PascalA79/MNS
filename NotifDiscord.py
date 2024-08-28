@@ -238,7 +238,7 @@ class NotifDiscord:
                 except Exception as e:
                     print(f'Error reconnecting: {e}')
 
-        streamer_commands = Command('test', 'Commande pour gérer les streamers', None)
+        streamer_commands = Command('streamer', 'Commande pour gérer les streamers', None)
         add_streamer_command = Command('add', 'Ajoute un streamer avec son pseudo Twitch', ListDiscordCommand.add_streamer(), [CommandKarg('pseudos', True)])
         delete_streamer_command = Command('del', 'Supprime un streamer avec son pseudo Twitch', ListDiscordCommand.delete_streamer(), [CommandKarg('pseudos', True)])
         get_streamer_command = Command('get', 'Récupère les streamers en ligne', ListDiscordCommand.get_streamer())
