@@ -23,9 +23,9 @@ class Config:
         role.insert({'name':'owner'})
         user.insert({'pseudo':'admin', 'password':'qwerty123!'}) 
 
-        admin = user.getAll(**{'pseudo':'=admin'}).pop(0)
-        admin_role = role.getAll(**{'name':'=admin'}).pop(0)
-        verified_role = role.getAll(**{'name':'=verified'}).pop(0)
+        admin = user.getAll(**{'pseudo':'admin'}).pop(0)
+        admin_role = role.getAll(**{'name':'admin'}).pop(0)
+        verified_role = role.getAll(**{'name':'verified'}).pop(0)
 
         user_role.insert(admin.id_public,admin_role.id_public)
         user_role.insert(admin.id_public,verified_role.id_public)

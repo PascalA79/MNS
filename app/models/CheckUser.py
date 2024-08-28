@@ -44,7 +44,7 @@ class CheckUser(ApiModel):
             errors['code'] = ApiConstant.Errors.NOT_FOUND
             return None, errors
         try:
-            verified_role = Role.Role.getAll(**{'name':f"={'verified'}"})[0]
+            verified_role = Role.Role.getAll(**{'name':f"{'verified'}"})[0]
             user_role, errors_user_role = UserRole.UserRole.insert(user.id_public, verified_role.id_public)
             errors['roles'] = errors_user_role
         except Exception as e:

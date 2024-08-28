@@ -1,5 +1,4 @@
-from flask import Flask, jsonify, make_response, send_from_directory
-
+from flask import Flask, jsonify, make_response, request, redirect
 from app.constants import ApiConstant
 
 from .streamer import streamer_blueprint
@@ -7,11 +6,14 @@ from .user import user_blueprint
 from .role import role_blueprint
 from .user_role import user_role_blueprint
 from .token import token_blueprint
-from .permissions import register_static
+from .permissions import register_static, get_info_user
 from .discord import discord_blueprint
 from .game import game_blueprint
-from .bot import bot_blueprint
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def register_routes(app: Flask):
 
@@ -35,6 +37,15 @@ def register_routes(app: Flask):
     def custom_error(error):
         response = jsonify({"status": False, "errors": str(error)})
         return make_response(response, ApiConstant.Http.INTERNAL_SERVER_ERROR)
+    
+    @app.route('/')
+    def index():
+        info = get_info_user()
+        roles = info['roles']
+        url_redirect = '/index.html'
+        if 'verified' in roles:
+            url_redirect = '/user/index.html'
+        return redirect(url_redirect)
 
     app.register_blueprint(streamer_blueprint)
     app.register_blueprint(user_blueprint)
@@ -43,5 +54,4 @@ def register_routes(app: Flask):
     app.register_blueprint(token_blueprint)
     app.register_blueprint(discord_blueprint)
     app.register_blueprint(game_blueprint)
-    app.register_blueprint(bot_blueprint)
     register_static(app)

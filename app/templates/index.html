@@ -4,8 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Get Started</title>
+    <script src="scripts/jquery.js"></script>
+    <script src="scripts/functions.js"></script>
+    <script src="scripts/login.js"></script>
 </head>
 <body>
-    
+    <header></header>
+    <main class="dark-background">
+        <div>
+            <p>
+                Voici les étages pour configurermle bot:
+                Inviter le bot <a href="">ici</a> 
+            </p>
+        </div>
+        <script>
+            fillHeader('{{pseudo}}', {{ roles | tojson }})
+        </script>
+    </main>
 </body>
 </html>

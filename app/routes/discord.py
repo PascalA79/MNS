@@ -1,8 +1,50 @@
-from flask import Blueprint,  request, make_response
-from app.models import DiscordApp, DiscordStreamer, Streamer, db, Game, DiscordGame
+from flask import Blueprint,  request, make_response, render_template
+from app.models import DiscordApp, DiscordStreamer, Streamer, db, Game, DiscordGame, DiscordApp, Token, DiscordOwner
 from app.constants import ApiConstant
 import uuid
 discord_blueprint = Blueprint('discord', __name__, url_prefix='/api/discord')
+
+@discord_blueprint.route('/bot',methods=['POST'])
+def create_bot():
+    form = dict(request.form)
+    token = request.cookies.get('token')
+    registration = Token().getOne(token)
+    if not registration:
+        return make_response(
+            {
+                'errors':{
+                    'user_id':ApiConstant.Errors.FORBIDDEN
+                },
+                'status':False
+            }, ApiConstant.Http.FORBIDDEN
+        )
+    
+    user = registration.user
+    discord_name = form.get('guild_name')
+    id_guild = form.get('id_guild')
+    id_channel = form.get('id_channel')
+
+    # create DiscordApp
+    discord_app, errors = DiscordApp.insert({'name': discord_name, 'id_guild': id_guild, 'id_channel': id_channel})
+    # create DiscordOwner
+    discord_owner, errors = DiscordOwner.insert({'user_id': user.id, 'discord_app_id': discord_app.id}, errors)
+    if errors:
+        return make_response(
+            {
+                'status':False, 
+                'errors': errors
+            },
+            ApiConstant.Http.BAD_REQUEST
+        )
+    
+    return make_response(
+        {
+            'status': True,
+            'owner_id': discord_owner.id_public,
+            'discord_app_id': discord_app.id_public
+        },
+        ApiConstant.Http.CREATED
+    )
 
 @discord_blueprint.route('/guild', methods=['POST'])
 def create_guild():

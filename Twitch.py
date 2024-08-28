@@ -160,7 +160,9 @@ if __name__ == '__main__':
     from config import Config
     from time import sleep
     from datetime import datetime
+    from dotenv import load_dotenv
     Config.default()
+    load_dotenv()
     CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
     CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
     Twitch.set_default_client(CLIENT_ID, CLIENT_SECRET) 

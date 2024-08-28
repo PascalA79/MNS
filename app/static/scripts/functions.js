@@ -69,7 +69,7 @@ function fillHeader(pseudo, roles) {
     let header = $('header');
     let navList = $('<ul>');
 
-    let indexItem = $('<li>').append($('<a>').attr('href', '/user/index.html').text('Accueil'));
+    let indexItem = $('<li>').append($('<a>').attr('href', (pseudo?'/user': '') + '/index.html').text('Accueil'));
     navList.append(indexItem);
 
     if (roles.includes('admin')) {

@@ -4,6 +4,8 @@ import uuid
 from utility import dict_merge, split_string, convert_to_int_if_possible, get_attribute, has_attribute, get_all_subclasses, to_pascal_case, delete_keys
 from sqlalchemy.schema import UniqueConstraint
 import re
+from typing import Self
+from DecoderQuery import DecoderQuery, QueryObject
       
 class ApiModel(db.Model):
     
@@ -94,43 +96,22 @@ class ApiModel(db.Model):
         return iter(self.__to_dict().items())
 
     @classmethod
-    def getOne(cls, id_public):
+    def getOne(cls, id_public)->Self|None:
+        # decoder_query = DecoderQuery(cls)
+        # query = QueryObject('id_public', id_public)
+        # decoder_query.add_query(query)
+        # decoder_result = decoder_query.search()
+        # return decoder_result.pop(0) if decoder_result else None
         result = cls.query.filter_by(id_public=str(id_public)).first()
         return result    
     
     @classmethod
-    def getAll(cls, **conditions)->'list[ApiModel]':
-        allowed_operators = ['=', '>=', '<=', '<', '>', '!=', '*']
-        other_operator = []
-        query = db.session.query(cls)
-        for field, condition in conditions.items():
-            operator, search_value = split_string(condition, allowed_operators)
-            if operator and search_value:
-                search_value = convert_to_int_if_possible(search_value)
-                value = get_attribute(cls, field) if has_attribute(cls, field) else None
-                if operator == '=':
-                    query = query.where(value == search_value)
-                elif operator == '>':
-                    query = query.where(value > search_value)
-                elif operator == '>=':
-                    query = query.where(value >= search_value)
-                elif operator == '<':
-                    query = query.where(value < search_value)
-                elif operator == '<=':
-                    query = query.where(value <= search_value)
-                elif operator == '!=':
-                    query = query.where(value != search_value)
-                else :
-                    other_operator.append((field, operator,search_value))
-            else:
-                query = query.where(None)
-        results = [item[0] for item in db.session.execute(query).all()]
-        # for field, operator, search_value in other_operator:
-        #     if operator == '*':
-        #         regex_pattern = re.compile(search_value,re.IGNORECASE)
-        #         results = filter(lambda x: regex_pattern.match(getattr(x, field) if hasattr(x, field) else None), results)
-        return list(results)
-
+    def getAll(cls, **fields:str)->list[Self]:
+        decoder_query = DecoderQuery(cls)
+        for field, query in fields.items():
+            query = QueryObject(field, query)
+            decoder_query.add_query(query)
+        return decoder_query.search()
 
     @classmethod
     def insert(cls, data, errors:__ErrorsDict = None):

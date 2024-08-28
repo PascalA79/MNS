@@ -52,7 +52,7 @@ def getRole_User(user_id:uuid):
             },
             ApiConstant.Http.NOT_FOUND
         )
-    user_roles = UserRole().getAll(**{'user_id':f"={user.id}"})
+    user_roles = UserRole().getAll(**{'user_id':f"{user.id}"})
     if not user_roles:
         return make_response(
             {
@@ -82,7 +82,7 @@ def getUser_Role(role_id:uuid):
             'errors':{'role_id':ApiConstant.Errors.NOT_FOUND}
         },
         ApiConstant.Http.NOT_FOUND)
-    user_roles = UserRole().getAll(**{'role_id':f"={role.id}"})
+    user_roles = UserRole().getAll(**{'role_id':f"{role.id}"})
     if not user_roles:
         return make_response(
             {
