@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Events</title>
+</head>
+<body>
+    <script>
+        const base_url = "http://localhost:8000/api";
+        class Requete{
+            constructor(url, method, body_data){
+                this.url = url;
+                this.method = method;
+                this.body_data = body_data;
+            }
+            async run(f_data){
+                let response = await fetch(this.url, {
+                    method: this.method,
+                    body: this.body_data
+                })
+                .then(response => response.json())
+                .then(data => f_data(data))
+                .catch(error => console.error(error));
+            }
+        }
+        let requete_creer_event = new Requete(base_url + "/events", "POST", JSON.stringify({
+            "name": "Event 1",
+            "description": "Description de l'event 1",
+            "start_date": "2024-12-01",
+        }));
+        requete_creer_event.run(data => {
+            let public_id = data.event_id
+            let requete_get_event = new Requete(base_url + "/events/" + public_id, "GET", null);
+            let requete_update_event = new Requete(base_url + "/events/" + public_id, "PATCH", JSON.stringify({
+                "name": "Evenement 1",
+                "description": "Description de l'evenement 1",
+                "start_date": "2024-11-30",
+            }));
+            let requete_get_event2 = new Requete(base_url + "/events/" + public_id, "GET", null);
+            let requete_delete_event = new Requete(base_url + "/events/" + public_id, "DELETE", null);
+            requete_get_event.run(console.log);
+            requete_update_event.run(console.log);
+            requete_get_event2.run(console.log);
+            requete_delete_event.run(console.log);
+        });
+
+    </script>
+</body>
+</html>

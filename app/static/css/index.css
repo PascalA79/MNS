@@ -6,7 +6,7 @@
 
 header ul {
     list-style-type: none;
-    margin: 10px;
+    margin: 2%;
     padding: 0;
     overflow:auto;
     background-color: #333;
@@ -21,13 +21,12 @@ header li {
     transition: all 0.3s ease;
 }
 
-header li > * {
+header li {
     display: block;
     color: white;
     text-align: center;
     text-decoration: none;
 }
-
 header li:hover {
     filter: brightness(80%);
 }
@@ -42,7 +41,7 @@ main {
     display: flex;
     flex-direction: column;
     height: 100%;
-    margin: 10px;
+    margin: 2%;
 }
 main section{
     display: flex;

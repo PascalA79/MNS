@@ -7,6 +7,8 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
 TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
 DISCORD_ADMIN_ID = os.getenv("DISCORD_ADMIN_ID")
+LEVEL_IMAGE_FILE = os.getenv("LEVEL_IMAGE_FILE")
+CREATOR_IMAGE_FILE = os.getenv("CREATOR_IMAGE_FILE")
 
 class Config:
     @staticmethod
@@ -33,12 +35,15 @@ class Config:
         
     @staticmethod
     def default() -> None:
-        from app.models import Streamer, Role, User, UserRole, CheckUser, DiscordUser, DiscordApp, DiscordStreamer, Game, DiscordGame
+        from app.models import Streamer, Role, User, UserRole, CheckUser, DiscordUser, DiscordApp, DiscordStreamer, Game, DiscordGame, UserStreamer
+        from app.models import Event, EventLevel, Level, Player, PlayerTimer
         from Twitch import Twitch
         from NotifDiscord import NotifDiscord
         Twitch.set_default_client(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET)
         NotifDiscord.set_token(DISCORD_TOKEN)
         NotifDiscord.set_public_key(DISCORD_PUBLIC_KEY)
+        Level.set_level_image_file(LEVEL_IMAGE_FILE)
+        Level.set_creator_image_file(CREATOR_IMAGE_FILE)
         
         Streamer.set_dict_key(
             {
@@ -75,6 +80,24 @@ class Config:
                 'pseudo': 'pseudo'
             }
         )
+
+        UserStreamer.set_dict_key(
+            {
+                'user_streamer_id': 'id_public',
+                'user_id': 'user.id_public',
+                'streamer_id': 'streamer.id_public'
+            }
+        )
+        UserStreamer.set_sub_resource_key(
+            {
+                'user_id': 'user.id_public',
+                'streamer_id': 'streamer.id_public',
+                'pseudo': 'user.pseudo',
+                'id_twitch': 'streamer.id_twitch',
+                'pseudo_streamer': 'streamer.pseudo'
+            }
+        )
+
         UserRole.set_dict_key(
             {
                 'user_role_id':'id_public',
@@ -84,6 +107,8 @@ class Config:
         )
         UserRole.set_sub_resource_key(
             {
+                'user_id': 'user.id_public',
+                'role_id': 'role.id_public',
                 'pseudo': 'user.pseudo',
                 'role_name':'role.name'
             }
@@ -171,6 +196,91 @@ class Config:
                 'discord_app_id': 'discord_app.id_public',
                 'discord_app_name': 'discord_app.name',
                 'game_name': 'game.name',
+            }
+        )
+        Event.set_dict_key(
+            {
+                'event_id':'id_public',
+                'name': 'name',
+                'description': 'description',
+                'start_date': 'start_date',
+                'user_id': 'user.id_public'
+            }
+        )
+        Event.set_sub_resource_key(
+            {
+                'name': 'name',
+                'description': 'description',
+                'start_date': 'start_date',
+                'user_id': 'user.id_public',
+                'pseudo': 'user.pseudo'
+            }
+        )
+        Level.set_dict_key(
+            {
+                'level_id':'id_public',
+                'code' : 'code',
+                'description': 'description',
+                'name': 'name',
+                'creator': 'creator',
+                'thumbnail_url_level': 'level_image_path',
+                'thumbnail_url_creator': 'creator_image_path'
+            }
+        )
+        Level.set_sub_resource_key(
+            {
+                'code': 'code',
+                'name': 'name',
+                'description': 'description',
+                'creator': 'creator',
+                'thumbnail_url_level': 'level_image_path',
+                'thumbnail_url_creator': 'creator_image_path'
+            }
+        )
+        EventLevel.set_dict_key(
+            {
+                'event_level_id':'id_public',
+                'event_id': 'event.id_public',
+                'level_id': 'level.id_public'
+            }
+        )
+        EventLevel.set_sub_resource_key(
+            {
+                'event_name': 'event.name',
+                'level_code': 'level.code',
+                'event_id': 'event.id_public',
+                'level_id': 'level.id_public'
+            }
+        )
+        Player.set_dict_key(
+            {
+                'player_id':'id_public',
+                'user_id': 'user.id_public',
+                'event_id': 'event.id_public'
+            }
+        )
+        Player.set_sub_resource_key(
+            {
+                'pseudo': 'user.pseudo',
+                'event_name': 'event.name',
+                'event_id': 'event.id_public',
+                'user_id': 'user.id_public'
+            }
+        )
+        PlayerTimer.set_dict_key(
+            {
+                'timer_id':'id_public',
+                'level_id': 'level.id_public',
+                'player_id': 'player.id_public',
+                'timer': 'timer'
+            }
+        )
+        PlayerTimer.set_sub_resource_key(
+            {
+                'level_id': 'level.id_public',
+                'level_code': 'level.code',
+                'player_id': 'player.id_public',
+                'timer': 'timer'
             }
         )
 

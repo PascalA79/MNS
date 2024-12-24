@@ -9,6 +9,7 @@ from .token import token_blueprint
 from .permissions import register_static, get_info_user
 from .discord import discord_blueprint
 from .game import game_blueprint
+from .event import event_blueprint
 
 from dotenv import load_dotenv
 import os
@@ -54,4 +55,5 @@ def register_routes(app: Flask):
     app.register_blueprint(token_blueprint)
     app.register_blueprint(discord_blueprint)
     app.register_blueprint(game_blueprint)
+    app.register_blueprint(event_blueprint)
     register_static(app)

@@ -18,6 +18,9 @@
         <section id="streamers" class="dark-background"></section>
         <section id="games" class="dark-background"></section>
         <section id="discord_app" class="dark-background"></section>
+        <section id="events" class="dark-background"></section>
+        <section id="levels" class="dark-background"></section>
+        <section id="timers" class="dark-background"></section>
     </main>
     <footer></footer>
     
@@ -25,6 +28,7 @@
     document.addEventListener("DOMContentLoaded", async function() {
         fillHeader('{{pseudo}}', {{ roles | tojson }});
         await createAdminPannel()
+        
     })
 </script>
 

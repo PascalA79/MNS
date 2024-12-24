@@ -69,23 +69,29 @@ function fillHeader(pseudo, roles) {
     let header = $('header');
     let navList = $('<ul>');
 
-    let indexItem = $('<li>').append($('<a>').attr('href', (pseudo?'/user': '') + '/index.html').text('Accueil'));
+    let indexItem = $('<li>').text('Accueil').on('click', function() {
+        window.location.href = (pseudo?'/user': '') + '/index.html';
+    });
     navList.append(indexItem);
 
     if (roles.includes('admin')) {
-        let adminItem = $('<li>').append($('<a>').attr('href', '/admin/index.html').text('Administration'));
+        let adminItem = $('<li>').text('Administration').on('click', function() {
+            window.location.href = '/admin/index.html';
+        });
         navList.append(adminItem);
     }
 
     if (pseudo) {
-        let pseudoItem = $('<li>').append($('<a>').text(pseudo).on('click', function() {
+        let pseudoItem = $('<li>').text(pseudo).on('click', function() {
             window.location.href = '/user/profile.html';
-        }));
+        });
         navList.append(pseudoItem);
-        let logoutItem = $('<li>').append($('<a>').text('Déconnexion').on('click', logout));
+        let logoutItem = $('<li>').text('Déconnexion').on('click', logout);
         navList.append(logoutItem);
     } else {
-        let loginItem = $('<li>').append($('<a>').attr('href', '/login.html').text('Connexion'));
+        let loginItem = $('<li>').text('Connexion').on('click', function() {
+            window.location.href = '/login.html';
+        });
         navList.append(loginItem);
     }
 

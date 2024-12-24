@@ -60,7 +60,12 @@ def getStreamers():
     filters = request.args.to_dict()
     streamers = streamer.getAll(**filters)
     streamer_list = [dict(streamer) for streamer in streamers]
-    return {'streamers':streamer_list, 'status':True}
+    result = {'streamers':streamer_list, 'status':True}
+    return make_response(result, ApiConstant.Http.OK, {'ETag': Streamer.get_eTag()})
+
+@streamer_blueprint.route('/', methods=['HEAD'])
+def headStreamers():
+    return make_response('', ApiConstant.Http.OK, {'ETag': Streamer.get_eTag()})
 
 @streamer_blueprint.route('/<uuid:streamer_id>', methods=['DELETE'])
 def deleteStreamer(streamer_id:uuid):
@@ -109,4 +114,3 @@ def updateStreamer(streamer_id:uuid):
             return make_response({'errors': errors, 'status':False}, ApiConstant.Http.SERVICE_UNAVAILIABLE)
     Streamer().update(str(streamer_id),data, errors)
     return make_response({'status': bool(streamer)}, ApiConstant.Http.OK if streamer else ApiConstant.Http.NOT_FOUND)
-

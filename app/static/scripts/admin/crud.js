@@ -1,14 +1,58 @@
 class Field{
-    constructor({name, displayName, validator, defaultValue = null, changeable = true}){
+    constructor({name, displayName, validator, defaultValue = null, changeable = true, placeholder = '', fillable = true}) {
         this.name = name
         this.displayName = displayName
         this.validator = validator
         this.default = defaultValue
         this.changeable = changeable
+        this.placeholder = placeholder
+        this.fillable = fillable
     }
 
     validate(value){
         return this.validator.validate(value)
+    }
+}
+
+class DataFormator{
+    static convert_to_multivalue(data = [], key, value){
+        if (key === null) {
+            return Object.entries(data).reduce((acc, [object_id, object]) => {
+                acc[object_id] = object[value];
+                return acc;
+            }, {});
+        }
+        return data.reduce((acc, item) => 
+            ({ ...acc, [item[key]]: item[value] }), {}
+        );
+    }
+
+    static join(data = [], join_map = {}, join_table = {}, foreign_key, key_name, field_name) {
+        const joinMap = {};
+        let join_table_values = Object.values(join_table)
+        for (const join_item of join_table_values) {
+            const key = join_item[foreign_key];
+            if (!joinMap[key]) {
+                joinMap[key] = [];
+            }
+            joinMap[key].push(join_map[join_item[key_name]]);
+        }
+        for (const item of data) {
+            item[field_name] = joinMap[item[foreign_key]] || [];
+        }
+    
+        return data;
+    }
+    static replace(data = [], join_table = {}, foreign_key){
+        data.forEach(item=>{
+            item[foreign_key] = join_table[item[foreign_key]]
+        })
+        return data
+    }
+    static reduce(data = [], key){
+        return data.reduce((acc, item) => 
+            ({ ...acc, [item[key]]: item }), {}
+        );
     }
 }
 
@@ -23,6 +67,7 @@ class Erreur{
     static VALUE_NOT_ALLOWED = 'VALUE_NOT_ALLOWED'
     static MUTTIPLE_VALUE_NOT_ALLOWED = 'MUTTIPLE_VALUE_NOT_ALLOWED'
     static NOT_FOUND = 'NOT_FOUND'
+    static NOT_FOUND_ON_SMM2 = 'NOT_FOUND_ON_SMM2'
     static message = {
         [Erreur.INVALID_DATA_TYPE]: 'Type de donnée invalide',
         [Erreur.UNIQUE_CONSTRAINT_VIOLATION]: 'Violation de contrainte d\'unicité',
@@ -33,15 +78,66 @@ class Erreur{
         [Erreur.SERVICE_UNAVAILIABLE]: 'Service non disponible',
         [Erreur.VALUE_NOT_ALLOWED]: 'Valeur non autorisée',
         [Erreur.MUTTIPLE_VALUE_NOT_ALLOWED]: 'Valeur multiple non autorisée',
-        [Erreur.NOT_FOUND]: 'Introuvable'
+        [Erreur.NOT_FOUND]: 'Introuvable',
+        [Erreur.NOT_FOUND_ON_SMM2]: 'Introuvable sur SMM2'
     }
 }
+
 class Validation{
-    constructor({f_validate = (value)=>true, required = true, allowed_values = [], isMultiValue = false}){
+    static Type = class{
+        static INTEGER = 'INTEGER'
+        static NUMBER = 'NUMBER'
+        static STRING = 'STRING'
+        static DATE = 'DATE'
+        static DATE_TIME = 'DATE_TIME'
+        static TIMER = 'TIMER'
+        static toArray(){
+            return Object.values(this)
+        }
+    }
+    static Multivalue = class{
+        static convert_to_multivalue(data = [], key, value){
+            return data.levels.reduce((acc, item) => 
+                ({ ...acc, [item[key]]: item[value] }), {}
+            );
+        }
+        constructor(allowed_values = {}, foreign_key, key_name, isMultiValue = true) {
+            this.allowed_values = allowed_values
+            this.isMultiValue = isMultiValue
+            this.foreign_key = foreign_key
+            this.key_name = key_name
+        }
+        values(){
+            return Object.values(this.allowed_values)
+        }
+        keys(){
+            return Object.keys(this.allowed_values)
+        }
+        join(data = {}, key_name, join_table = {}, key_join, key_allowed_values) {
+            // Créer un objet pour les recherches rapides
+            const joinMap = {};
+            Object.values(join_table).forEach(value_join_table => {
+                const key = value_join_table[key_join];
+                if (!joinMap[key]) {
+                    joinMap[key] = [];
+                }
+                joinMap[key].push(this.allowed_values[value_join_table[key_allowed_values]]);
+            });
+
+            // Itérer sur les données et utiliser l'objet pour les jointures
+            Object.entries(data).forEach(([key_data, item_data]) => {
+                item_data[key_name] = joinMap[key_data] || [];
+            });
+
+            return data;
+        }
+    }
+    constructor({f_validate = (value)=>true, required = true, type = Validation.Type.STRING, allowed_values = null, is_multivalue = true}) {
         this.f_validate = f_validate
         this.required = required
+        this.type = type
         this.allowed_values = allowed_values
-        this.isMultiValue = isMultiValue
+        this.is_multivalue = is_multivalue
     }
 
     validate(...values){
@@ -51,19 +147,17 @@ class Validation{
                 errorMessages.push(Erreur.MISSING_REQUIRED_FIELD)
                 continue
             }
-            const allowed_values = this.allowed_values.map(value=>value[CRUD.__idSelector])
-            if(item && allowed_values.length && !allowed_values.includes(item))  errorMessages.push(Erreur.VALUE_NOT_ALLOWED)
-            if(!this.isMultiValue && values.length>1) errorMessages.push(Erreur.MUTTIPLE_VALUE_NOT_ALLOWED)
+            if(this.multivalue){
+                const allowed_values = this.multivalue.keys()
+                if(item && allowed_values.length && !(allowed_values.includes(item) || allowed_values.includes(undefined)))  errorMessages.push(Erreur.VALUE_NOT_ALLOWED)
+                if(!this.multivalue.is_multivalue && values.length>1) errorMessages.push(Erreur.MUTTIPLE_VALUE_NOT_ALLOWED)
+            }
             if(!this.f_validate(item)){
                 // errorMessages.push(Erreur.INVALID_DATA_TYPE)
             }
         }
         return errorMessages
     }
-    static addFunction(function_name, func){
-        this[function_name] = (value)=>func(value) && value
-    }
-
     static isInteger(value){
         return !isNaN(parseInt(value,10)) && parseInt(value,10);
     }
@@ -89,33 +183,56 @@ class Validation{
         }
         return false
     }
+    static isDate(value){
+        return new Date(value) && value
+    }
+
 }
 
-
 class CRUD{
-    static  __idSelector = 'id'
-    static  __valueSelector = 'value'
-    static toCheckboxList(list = [], idKey = 'id', valueKey = 'value'){
-        const checkBoxList = []
-        for(let item of list){
-            let dict = {}
-            dict[CRUD.__idSelector] = item[idKey]
-            dict[CRUD.__valueSelector] = item[valueKey]
-            checkBoxList.push(dict);
+    static Action = class{
+        static CREATE = 'CREATE'
+        static UPDATE = 'UPDATE'
+        static DELETE = 'DELETE'
+        static READ = 'READ'
+        static READ_ACTION_REQUIRED_ERROR = class extends Error{
+            constructor(message){
+                super(message)
+            }
         }
-
-        return checkBoxList
     }
-    constructor(idContainer, title, baseURL, f_formatData, ...fields){
-        this.__idContainer = idContainer
-        this.__f_formatData = f_formatData
-        this.__title = title
-        this.__baseURL = baseURL 
+    #idContainer
+    #f_formatData
+    #title
+    #baseURL
+    #table
+    #thead
+    #tbody
+    #is_create
+    #is_read
+    #is_update
+    #is_delete
+    #eTag
+    constructor(idContainer, title, baseURL, actions, f_formatData, ...fields){
+        this.#idContainer = idContainer
+        this.#f_formatData = f_formatData
+        this.#title = title
+        this.#baseURL = baseURL 
         this.fields = fields
-        this.__table = $('<table>')
-        this.__table.addClass('crud')
-        this.__thead = $('<thead>')
-        this.__tbody = $('<tbody>') 
+        this.#table = $('<table>')
+        this.#table.addClass('crud')
+        this.#thead = $('<thead>')
+        this.#tbody = $('<tbody>')
+        this.#is_create = actions.includes(CRUD.Action.CREATE);
+        this.#is_read = actions.includes(CRUD.Action.READ);
+        this.#is_update = actions.includes(CRUD.Action.UPDATE);
+        this.#is_delete = actions.includes(CRUD.Action.DELETE);
+        if (!this.#is_read && (this.#is_update || this.#is_delete)){
+            this.#is_update = false
+            this.#is_delete = false
+            throw new CRUD.Action.READ_ACTION_REQUIRED_ERROR('READ action is required')
+        }
+        this.#eTag = null
         this.renew()
     }
     validate(formData){
@@ -131,7 +248,7 @@ class CRUD{
         }
         return errors
     }
-    __createForm(id_item = null){
+    #createForm(id_item = null){
         const item = this.getOne(id_item)
 
         const rowCreate = $('<tr>')
@@ -139,32 +256,98 @@ class CRUD{
         rowCreate.addClass(id_item? 'update_item': 'new_item')
         for(let field of this.fields){
             let td = $('<td>');
-            if(field.validator.allowed_values.length){
+            let is_disabled = (id_item && !field.changeable) || (!id_item && !field.fillable);
+            if(field.validator.allowed_values){
                 const inputContainer  = $('<div class="multichoice">');
-                field.validator.allowed_values.forEach(value => {
-                    const input = $('<input>').attr({
-                        disabled: !field.changeable && id_item,
-                        type: field.validator.isMultiValue ? 'checkbox' : 'radio',
-                        name: field.name,
-                        value: value[CRUD.__idSelector],
-                        required: field.validator.required,
-                        id:`CRUD_${value[CRUD.__valueSelector]}_${value[CRUD.__idSelector]}`,
-                        checked: Boolean(item[field.name] && item[field.name].includes(value[CRUD.__valueSelector]))
-                    });
-                    const inputLabel = $('<label>').text(value[CRUD.__valueSelector]).attr({
-                        for: `CRUD_${value[CRUD.__valueSelector]}_${value[CRUD.__idSelector]}`
-                    });
-                    inputContainer.append(input).append(inputLabel);
+                Object.entries(field.validator.allowed_values).forEach(([key,value]) => {
+                    let input;
+                    if(false && value == Infinity){
+                        input = $('<textarea>').attr({
+                            disabled: is_disabled,
+                            name: field.name,
+                        }).css({
+                            minWidth: '100%'
+                        });
+                    }
+                    else{
+                        input = $('<input>').attr({
+                            disabled: is_disabled,
+                            type: field.validator.is_multivalue ? 'checkbox' : 'radio',
+                            name: field.name,
+                            value: key,
+                            required: field.validator.required,
+                            id:`CRUD_${field.name}_${value}_${key}`,
+                            checked: Boolean(item[field.name] && item[field.name].includes(value))
+                        });
+                        const inputLabel = $('<label>').text(value).attr({
+                            for: `CRUD_${field.name}_${value}_${key}`
+                        });
+                        inputContainer.append(input).append(inputLabel);
+                    }
                     inputContainer.append(input);
                 });
+                const ErraseButton = $('<button>').text('Effacer').attr('type', 'button');
+                if(!field.validator.required){
+                    ErraseButton.on('click', function(){
+                        inputContainer.find('input').prop('checked', false);
+                    });
+                    ErraseButton.appendTo(inputContainer);
+                }
                 inputContainer.appendTo(td)
+            }
+            else if(field.validator.type == Validation.Type.DATE){
+                const input = $('<input>').attr({
+                    type: 'date',
+                    name: field.name,
+                    value: item[field.name] || field.default,
+                    disabled: is_disabled
+                });
+                input.appendTo(td)
+            }
+            else if(field.validator.type == Validation.Type.DATE_TIME){
+                const input = $('<input>').attr({
+                    type: 'datetime-local',
+                    name: field.name,
+                    value: item[field.name] || field.default,
+                    disabled: is_disabled
+                });
+                input.appendTo(td)
+            }
+            else if(field.validator.type == Validation.Type.TIMER){
+                const input = $('<input>').attr({
+                    type: 'time',
+                    name: field.name,
+                    value: item[field.name] || field.default,
+                    disabled: is_disabled,
+                    step:"0.1"
+
+                });
+                input.appendTo(td)
+            }
+            else if(field.validator.type == Validation.Type.INTEGER){
+                const input = $('<input>').attr({
+                    type: 'number',
+                    name: field.name,
+                    value: item[field.name] || field.default,
+                    disabled: is_disabled
+                });
+                input.appendTo(td)
+            }
+            else if(field.validator.type == Validation.Type.NUMBER){
+                const input = $('<input>').attr({
+                    type: 'number',
+                    name: field.name,
+                    value: item[field.name] || field.default,
+                    disabled: is_disabled
+                });
+                input.appendTo(td)
             }
             else{
                 const input = $('<input>')
                 input.attr({
                     'name':field.name,
                     'value': item[field.name] || field.default,
-                    'disabled': !field.changeable && id_item,
+                    'disabled': is_disabled
                 })
                 input.appendTo(td)
             }
@@ -178,7 +361,7 @@ class CRUD{
         confirmButton.on('click', function(even){
             even.preventDefault();
             const formData = new FormData();
-            const form = $(`#${current_crud.__idContainer}`).get(0);            
+            const form = $(`#${current_crud.#idContainer}`).get(0);            
             let elements = $(form);
             elements = id_item?elements.find('.update_item'):elements.find('.new_item')
             elements = elements.find('input, select, textarea');
@@ -209,8 +392,15 @@ class CRUD{
             });
             const errors = current_crud.validate(formData)
             if(Object.keys(errors).length){
-                current_crud.createErrors(`#${current_crud.__idContainer} ${id_item?`.update_item`:`.new_item`}`, errors)
+                current_crud.createErrors(`#${current_crud.#idContainer} ${id_item?`.update_item`:`.new_item`}`, errors)
                 return
+            }
+            const data = {}
+            for (let pair of formData.entries()) {
+                if (!data[pair[0]]) {
+                    data[pair[0]] = [];
+                }
+                data[pair[0]].push(pair[1]);
             }
             if(id_item){
                 return current_crud.updateItem(id_item,formData)
@@ -224,26 +414,19 @@ class CRUD{
         .attr({'title': 'Annuler'});
         cancelButton.on('click', function(even){
             even.preventDefault();
-            $(`#${current_crud.__idContainer}  .update_item`).remove()
-            $(`#${current_crud.__idContainer}  #${id_item}`).show()
-            $(`#${current_crud.__idContainer} button:contains('Modifier')`).attr('disabled',false);
+            $(`#${current_crud.#idContainer}  .update_item`).remove()
+            $(`#${current_crud.#idContainer}  #${id_item}`).show()
+            $(`#${current_crud.#idContainer} button:contains('Modifier')`).attr('disabled',false);
         })
         let td = $('<td>');
-        if(id_item){
-            const buttons = $('<div>')
-            buttons.append(cancelButton)
-            buttons.append(confirmButton)
-            buttons.appendTo(td)
-            td.appendTo(rowCreate)
-        }
-        else{
-            confirmButton.appendTo(td);
-            td.appendTo(rowCreate)
-        }
-
+        const buttons = $('<div>')
+        if(id_item) buttons.append(cancelButton)
+        buttons.append(confirmButton)
+        buttons.appendTo(td)
+        td.appendTo(rowCreate)
         return rowCreate
     }
-    __createAddButton(){
+    #createAddButton(){
         const addButton = $('<button>')
         addButton.text('Ajouter')
         addButton.attr('title', 'Ajouter')
@@ -254,15 +437,15 @@ class CRUD{
             state = (++state)%2
             if(state){
                 $(this).text('Annuler')
-                current_crud.__createForm().prependTo(current_crud.__tbody)
+                current_crud.#createForm().prependTo(current_crud.#tbody)
             }else{
                 $(this).text('Ajouter')
-                $(`#${current_crud.__idContainer}  .new_item`).remove()
+                $(`#${current_crud.#idContainer}  .new_item`).remove()
             }
         });        
         return addButton
     }
-    __createUpdateButton(){
+    #createUpdateButton(){
         const editButton = $('<button>')
         editButton.text('Modifier')
         editButton.attr('title', 'Modifier')
@@ -270,13 +453,13 @@ class CRUD{
         editButton.on('click', function(event) {
             event.preventDefault()
             let id_item = $(this).closest('tr').attr('id')
-            current_crud.__createForm(id_item).insertAfter($(`#${current_crud.__idContainer} #${id_item}`))
-            $(`#${current_crud.__idContainer} button:contains('Modifier')`).attr('disabled',true);
-            $(`#${current_crud.__idContainer} #${id_item}`).hide()
+            current_crud.#createForm(id_item).insertAfter($(`#${current_crud.#idContainer} #${id_item}`))
+            $(`#${current_crud.#idContainer} button:contains('Modifier')`).attr('disabled',true);
+            $(`#${current_crud.#idContainer} #${id_item}`).hide()
         });        
         return editButton
     }
-    __createDeleteButton(){
+    #createDeleteButton(){
         const deleteButton = $('<button>')
         deleteButton.text('Supprimer')
         deleteButton.attr('title', 'Supprimer')
@@ -291,55 +474,72 @@ class CRUD{
           });        
         return deleteButton
     }
-    __displayCRUD(){
+    #displayCRUD(){
         const title = $('<th>');
-        title.text(this.__title)
-        title.attr('colspan', (this.fields).length+1)
-        title.appendTo($('<tr>')).appendTo(this.__thead)
+        const extra_th = +(this.#is_update || this.#is_delete || this.#is_create)
+        title.text(this.#title)
+        title.attr('colspan', (this.fields).length+extra_th)
+        title.appendTo($('<tr>')).appendTo(this.#thead)
         const trHeader = $('<tr>');
         for(let field of this.fields){
             let th = $('<th>');
             th.text(field.displayName)
             th.appendTo(trHeader)
         }
-        let th = $('<th>');
-        const addButton = this.__createAddButton()
-        addButton.appendTo(th);
-        th.appendTo(trHeader);
+        if(extra_th){
+            let th = $('<th>');
+            if(this.#is_create){
+                const addButton = this.#createAddButton()
+                const container = $('<div>')
+                container.append(addButton)
+                container.appendTo(th)
+
+            }
+            th.appendTo(trHeader);
+        }
         const form = $('<form>');
-        trHeader.appendTo(this.__thead);
-        this.__thead.appendTo(this.__table);
-        this.__tbody.appendTo(this.__table);
-        this.__table.appendTo(form);
-        form.appendTo($(`#${this.__idContainer}`))
+        trHeader.appendTo(this.#thead);
+        this.#thead.appendTo(this.#table);
+        this.#tbody.appendTo(this.#table);
+        this.#table.appendTo(form);
+        form.appendTo($(`#${this.#idContainer}`))
     }
     renew(){
-        $(`#${this.__idContainer}`).empty()
-        this.__thead.empty();
-        this.__tbody.empty();
-        this.__table.empty();
-        this.__displayCRUD()
+        $(`#${this.#idContainer}`).empty()
+        this.#thead.empty();
+        this.#tbody.empty();
+        this.#table.empty();
+        this.#displayCRUD()
         this.fillData()
     }
     fillData(){
-        $(`#${this.__idContainer} button`).attr('disabled',true)
+        if(!this.#is_read){
+            if(this.#is_create)
+            {
+                this.#createForm().appendTo(this.#tbody)
+            }
+            return
+        }
+        const extra_td = +(this.#is_update || this.#is_delete || this.#is_create)
+        $(`#${this.#idContainer} button`).attr('disabled',true)
         const headers = new Headers();
         headers.append('Authorization', getToken());
-        const request = new Request(this.__baseURL, {
+        const request = new Request(this.#baseURL, {
             method: 'GET',
             headers: headers
         });
 
         fetch(request).then(response => {
             if (response.ok) {
+                this.#eTag = response.headers.get('eTag')
                 return response.json();
             } else {
-                $(`#${this.__idContainer} button`).attr('disabled',false)
+                $(`#${this.#idContainer} button`).attr('disabled',false)
                 throw new Error('Erreur de réseau');
             }
         })
         .then((data)=>{
-            const formatedData = this.__f_formatData(data);
+            const formatedData = this.#f_formatData(data);
             Object.entries(formatedData).forEach(entry => {
                 const [key, value] = entry;
                 const tr = $('<tr>').attr('id', key);
@@ -356,6 +556,18 @@ class CRUD{
                         });
                         td.append(select);
                     } 
+                    else if  (field.validator.type == Validation.Type.TIMER) {
+                        const intToTimer = ms => `${String(Math.floor(ms / 3600000)).padStart(2, '0')}:${String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}.${String(ms % 1000).padStart(3, '0')}`;
+                        const input = $('<input>').attr({
+                            type: 'time',
+                            readonly: true,
+                            value: intToTimer(value[field.name]),
+                            name: field.name,
+                            step:'0.1'
+                        });
+                        td.append(input);
+                    }
+
                     else {
                         const input = $('<input>').attr({
                             type: 'text',
@@ -367,15 +579,17 @@ class CRUD{
                     }
                     td.appendTo(tr);
                 }
-                const buttons = $('<div>')
-                buttons.append(this.__createUpdateButton())
-                buttons.append(this.__createDeleteButton())
-                const td_buttons = $('<td>')
-                buttons.appendTo(td_buttons)
-                tr.append(td_buttons)
-                tr.appendTo(this.__tbody);
+                if(extra_td){
+                    const buttons = $('<div>')
+                    if(this.#is_update) buttons.append(this.#createUpdateButton())
+                    if(this.#is_delete) buttons.append(this.#createDeleteButton())
+                    const td_buttons = $('<td>')
+                    buttons.appendTo(td_buttons)
+                    tr.append(td_buttons)
+                }
+                tr.appendTo(this.#tbody);
             });
-            $(`#${this.__idContainer} button`).attr('disabled',false)
+            $(`#${this.#idContainer} button`).attr('disabled',false)
         })
         
     }
@@ -405,7 +619,7 @@ class CRUD{
     createItem(formData){
         const headers = new Headers();
         headers.append('Authorization', getToken());
-        const request = new Request(this.__baseURL, {
+        const request = new Request(this.#baseURL, {
             method: 'POST',
             body: formData,
             headers: headers
@@ -419,7 +633,11 @@ class CRUD{
             }
         })
         .then((data)=>{
-            this.createErrors(`#${this.__idContainer} .new_item`,data.errors);
+            let errors = {}
+            if(data){
+                errors = data.errors
+            }
+            this.createErrors(`#${this.#idContainer} .new_item`,errors);
         })
         .catch(error => {
             console.error('Erreur lors de l\'envoi de la requête AJAX', error);
@@ -428,7 +646,7 @@ class CRUD{
     updateItem(uuid,formData){
         const headers = new Headers();
         headers.append('Authorization', getToken());
-        const request = new Request(`${this.__baseURL}/${uuid}`, {
+        const request = new Request(`${this.#baseURL}/${uuid}`, {
             method: 'PATCH',
             body: formData,
             headers: headers
@@ -444,7 +662,7 @@ class CRUD{
         })
         .then((data)=>{
             if(data){
-                this.createErrors(`#${this.__idContainer} .update_item`,data.errors);
+                this.createErrors(`#${this.#idContainer} .update_item`,data.errors);
             }
         })
         .catch(error => {
@@ -454,7 +672,7 @@ class CRUD{
     deleteItem(uuid){
         const headers = new Headers();
         headers.append('Authorization', getToken());
-        const request = new Request(`${this.__baseURL}/${uuid}`, {
+        const request = new Request(`${this.#baseURL}/${uuid}`, {
             method: 'DELETE',
             headers: headers
         });
@@ -467,7 +685,11 @@ class CRUD{
             }
         })
         .then((data)=>{
-            this.createErrors(`#${this.__idContainer} #${uuid}` ,data.errors);
+            let errors = {}
+            if(data){
+                errors = data.errors
+            }
+            this.createErrors(`#${this.#idContainer} #${uuid}` , errors);
         })
         .catch(error => {
             console.error('Erreur lors de l\'envoi de la requête AJAX', error);
@@ -475,7 +697,7 @@ class CRUD{
     }
     getOne(item_id){
         const formData = {};
-        let item = $(`#${this.__idContainer} #${item_id}`)
+        let item = $(`#${this.#idContainer} #${item_id}`)
         const elements = $(item).find('input, select, textarea');
         elements.each(function() {
             const element = $(this);
@@ -483,7 +705,6 @@ class CRUD{
             let value;
     
             if (element.is('select')) {
-                // tous les options du select
                 value = value = element.find('option').map(function() { return $(this).val(); }).get();
             }
             else {
@@ -493,4 +714,35 @@ class CRUD{
         });
         return formData;
     }
+    
+    start_partial_refresh(){
+        setInterval(()=>{
+            if ($(this.#tbody).hasClass('new_item') || $(this.#tbody).hasClass('update_item')) {
+                return
+            }
+            fetch(this.#baseURL, {
+                method: 'HEAD',
+                headers: {
+                    'Authorization': getToken(),
+                    'eTag': this.#eTag
+                }
+            }).then(response => {
+                if (response.ok) {
+                    return response.headers.get('eTag');
+                } else {
+                    throw new Error('Erreur de réseau');
+                }
+            })
+            .then((eTag)=>{
+                if(this.#eTag != eTag){
+                    this.#eTag = eTag
+                    this.renew()
+                }
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }, 2000)
+    }
+
 }

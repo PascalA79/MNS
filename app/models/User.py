@@ -1,4 +1,4 @@
-from app.models import db, bcrypt, ApiModel, CheckUser, Role, User
+from app.models import db, bcrypt, ApiModel, CheckUser, Role, User, UserRole
 from utility import delete_keys
 
 class User(ApiModel):
@@ -60,12 +60,18 @@ class User(ApiModel):
         user = cls.getOne(id_public)
         for user_role in user.user_roles:
             db.session.delete(user_role)
-        for token in user.token:
+        for token in user.tokens:
             db.session.delete(token)
-        for discord_user in user.discord_user:
+        for discord_user in user.discord_users:
             db.session.delete(discord_user)
         for check_user in user.check_users:
             db.session.delete(check_user)
+        for event in user.events:
+            admin = User.query.filter_by(pseudo='admin').first()
+            event.user_id = admin.id
+            db.session.add(event)
+        for user_streamer in user.user_streamers:
+            db.session.delete(user_streamer)
         db.session.commit()
         return super().delete(id_public)
     @property

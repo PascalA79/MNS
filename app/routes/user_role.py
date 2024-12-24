@@ -19,6 +19,10 @@ def addUserRole():
         , ApiConstant.Http.CREATED
     )
 
+@user_role_blueprint.route('/', methods=['HEAD'])
+def headUserRoles():
+    return make_response('', ApiConstant.Http.OK, {'ETag': UserRole.get_eTag()})
+
 @user_role_blueprint.route('/<uuid:user_role_id>', methods=['GET'])
 def getUserRole(user_role_id:uuid):
     user_role = UserRole().getOne(str(user_role_id))
@@ -118,9 +122,10 @@ def getUserRoles():
     for user_role in user_roles:
         users.update(user_role.user.to_sub_resource())
         roles.update(user_role.role.to_sub_resource())
-    return {
+    result =  {
         'user_roles':[dict(user_role) for user_role in user_roles],
         'users': users,
         'roles': roles,
         'status':True
     }
+    return make_response(result, ApiConstant.Http.OK, {'ETag': UserRole.get_eTag()})

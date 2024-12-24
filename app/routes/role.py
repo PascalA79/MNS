@@ -13,6 +13,10 @@ def addRole():
         return make_response({'errors': errors, 'status':False}, 400)
     return {'role_id': new_role.id_public}
 
+@role_blueprint.route('/', methods=['HEAD'])
+def headRoles():
+    return make_response('', ApiConstant.Http.OK, {'ETag': Role.get_eTag()})
+
 @role_blueprint.route('/<uuid:role_id>', methods=['GET'])
 def getRole(role_id:uuid):
     role = Role.getOne(role_id)
@@ -26,6 +30,7 @@ def getRole(role_id:uuid):
             ApiConstant.Http.NOT_FOUND
         )
     return dict(role)
+
 @role_blueprint.route('/<string:role_name>', methods=['GET'])
 def getRoleName(role_name:str):
     record = Role.query.filter_by(name=role_name).first()
@@ -43,7 +48,8 @@ def getRoles():
     role = Role()
     filters = request.args.to_dict()
     roles = role.getAll(**filters)
-    return {'roles':[dict(role) for role in roles], 'status':True}
+    result = {'roles':[dict(role) for role in roles], 'status':True}
+    return make_response(result, ApiConstant.Http.OK, {'ETag': Role.get_eTag()})
 
 @role_blueprint.route('/<uuid:role_id>', methods=['DELETE'])
 def deleteRole(role_id:uuid):

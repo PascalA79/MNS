@@ -6,8 +6,10 @@ from collections import defaultdict
 from threading import Thread
 from queue import Queue
 from time import sleep
-import asyncio
-import inspect
+import requests
+from PIL import Image
+from io import BytesIO
+import os
 
 
 def to_camel_case(pascal_case : str):
@@ -208,6 +210,46 @@ def try_retry(func, retry:int= 3, wait_time:int=0, default_value=None, *args, **
             sleep(wait_time)
     return default_value
 
+
+
+def save_image_from_url(image_url, output_file="output.ico", size=(32, 32), format=None):
+    try:
+        # Récupérer l'image depuis l'URL
+        response = requests.get(image_url)
+        image_data = response.content
+        
+        # Ouvrir l'image avec PIL
+        img = Image.open(BytesIO(image_data))
+        
+        # Redimensionner l'image si nécessaire
+        img = img.resize(size)
+        
+        # Créer un fichier ICO
+        output_dir = os.path.dirname(output_file)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        
+        img.save(output_file, format)
+    
+    except Exception as e:
+        return False
+    return True
+
+def remove_image(image_path):
+    try:
+        os.remove(image_path)
+    except Exception as e:
+        return False
+    return True
+
+def timer_to_int(time_str):
+    pattern = r"^\d{2}:\d{2}:\d{2}\.\d{3}$"
+    if not re.match(pattern, time_str):
+        return 'Ooopsie'
+    time_obj = datetime.strptime(time_str, "%H:%M:%S.%f")
+    total_milliseconds = (time_obj.hour * 3600 * 1000) + (time_obj.minute * 60 * 1000) + (time_obj.second * 1000) + (time_obj.microsecond // 1000)
+    return total_milliseconds
+
 if __name__ == '__main__':
     def test_try_retry():
         def test_func():
@@ -274,6 +316,21 @@ if __name__ == '__main__':
     print(get_attribute(user_role,test)) 
     print(test_try_retry())
     print(try_retry(lambda : 'Hi', 2, 1, 'default'))
-    
 
+    #test save_image_from_url
+    image_url = "https://cdn.discordapp.com/icons/860051225398214677/9101ee588061de94cb470b4bb5575938.webp?size=160"
+    filename = "test/favicon.ico"
+    # créer dossier test si il n'existe pas
+    if not os.path.exists('test'):
+        os.makedirs('test')
 
+    Image_created = save_image_from_url(image_url, filename, size=(32,32))
+    if Image_created:
+        print("Image créée avec succès")
+    else:
+        print("Erreur lors de la création de l'image")
+    # supprimer le fichier et l'image créée
+    os.remove(filename)
+    os.rmdir('test')
+    timer_result = timer_to_int('12:30:00,000')
+    print(timer_result, 'Réussi' if timer_result == 45000000 else 'Échec')

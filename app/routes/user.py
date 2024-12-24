@@ -1,5 +1,5 @@
 from flask import Blueprint, make_response, request
-from app.models import User, UserRole, Token,  db, CheckUser
+from app.models import User, UserRole, Token, UserStreamer,  db, CheckUser, Streamer
 import uuid
 from app.constants import ApiConstant
 user_blueprint = Blueprint('user', __name__, url_prefix='/api/users')
@@ -27,6 +27,15 @@ def addUser():
     role_errors = user_role_model.create_api_errors()
     for role_id in roles:
         user_role, role_errors = user_role_model.insert(new_user.id_public,role_id, role_errors)
+
+    streamer_id = form.get('streamer')
+    if streamer_id:
+        
+        user_streamer = UserStreamer()
+        _, errors = user_streamer.insert(new_user.id_public, streamer_id, errors)
+    if errors:
+        db.session.rollback()
+        return make_response({'status':False,'errors': errors}, ApiConstant.Http.BAD_REQUEST)
 
     return make_response({'status':True, 'user_id': new_user.id_public}, ApiConstant.Http.CREATED)
 
@@ -69,11 +78,14 @@ def getUser(user_id:uuid):
         )
     user_roles = {}
     discord_users = {}
+    streamers = {}
     for user_role in user.user_roles:
         user_roles.update(user_role.to_sub_resource())
     for discord_user in user.discord_user:
         discord_users.update(discord_user.to_sub_resource())
-    return {'users':dict(user), 'status':True, 'user_roles': user_roles, 'discord_users': discord_users}
+    for streamer in user.user_streamers:
+        streamers.update(streamer.to_sub_resource())
+    return {'users':dict(user), 'status':True, 'user_roles': user_roles, 'discord_users': discord_users, 'streamers': streamers}
 
 @user_blueprint.route('/', methods=['GET'])
 def getUsers():
@@ -99,13 +111,23 @@ def getUsers():
     users = User().getAll(**filters)
     user_roles = {}
     discord_users = {}
+    streamers = {}
     for user in users:
         for user_role in user.user_roles:
             user_roles.update(user_role.to_sub_resource())
         for discord_user in user.discord_users:
             discord_users.update(discord_user.to_sub_resource())
+        for streamer in user.user_streamers:
+            streamers.update(streamer.to_sub_resource())
         
-    return {'users':[dict(user) for user in users], 'user_roles': user_roles, 'discord_users': discord_users, 'status':True}
+    result = {
+        'users':[dict(user) for user in users],
+        'user_roles': user_roles,
+        'discord_users': discord_users,
+        'streamers': streamers,
+        'status':True
+        }
+    return make_response(result, ApiConstant.Http.OK, {'ETag': User.get_eTag()})
 
 @user_blueprint.route('/<uuid:user_id>', methods=['PATCH'])
 def updateUser(user_id:uuid):
@@ -128,16 +150,21 @@ def updateUser(user_id:uuid):
             db.session.commit()
         errors = UserRole.create_api_errors()
         new_roles = request.form.getlist('roles')
+        streamer = request.form.get('streamer')
         for role_id in new_roles:
-            user_role, role_errors = user_role_model.insert(user.id_public,role_id)
-            if role_errors:
-                errors.update(role_errors)
+            _, errors = user_role_model.insert(user.id_public,role_id, errors)
         data = dict(request.form)
-        new_user, user_errors = user.update(user.id_public, data)
-        if user_errors:
-            errors.update(user_errors)
+        user_streamer = UserStreamer()
+        if not streamer:
+            user_streamer.delete_where(user_id=user.id)
+        else:
+            _, errors = user_streamer.insert(user.id_public, streamer, errors)
+
+        new_user, errors = user.update(user.id_public, data, errors)
+
         if errors:
-            return {'status': False, 'errors': errors}
+            db.session.rollback()
+            return make_response({'status':False,'errors': errors}, ApiConstant.Http.BAD_REQUEST)
         return {'status': True}
     return make_response({'status': False, 'user_id': ApiConstant.Errors.NOT_FOUND}, ApiConstant.Http.NOT_FOUND)
 
@@ -150,3 +177,8 @@ def addUserSelf():
         return make_response({'status':False,'errors': errors}, ApiConstant.Http.BAD_REQUEST)
     
     return make_response({'status':True, 'user_id': new_user.id_public, 'code': check_user.code}, ApiConstant.Http.CREATED)
+
+@user_blueprint.route('/', methods=['HEAD'])
+def headUsers():
+    return make_response('', ApiConstant.Http.OK, {'ETag': User.get_eTag()})
+

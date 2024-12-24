@@ -104,12 +104,13 @@ def get_guilds():
         for discord_game in guild.discord_games:
             discord_games_data.update(discord_game.to_sub_resource())
 
-    return make_response( {
+    result = {
         'guilds':[dict(guild) for guild in guilds],
         'streamers':discord_streamers_data,
         'games':discord_games_data,
         'status':True
-    }, ApiConstant.Http.OK)
+    }
+    return make_response( result, ApiConstant.Http.OK, {'ETag': DiscordApp.get_eTag()})
 
 @discord_blueprint.route('/guild/<uuid:id_guild>', methods=['DELETE'])
 def delete_guild(id_guild:uuid):

@@ -6,8 +6,9 @@ db = SQLAlchemy()
 
 from .ApiModel import ApiModel
 from .User import User
-from .Role import Role
 from .UserRole import UserRole
+from .UserStreamer import UserStreamer
+from .Role import Role
 from .Streamer import Streamer
 from .Token import Token
 from .CheckUser import CheckUser
@@ -16,22 +17,34 @@ from .DiscordStreamer import DiscordStreamer
 from .DiscordApp import DiscordApp
 from .Game import Game
 from .DiscordGame import DiscordGame
-from .DiscordOwner import DiscordOwner
+from .events.Event import Event
+from .events.EventLevel import EventLevel
+from .events.Level import Level
+from .events.Player import Player
+from .events.PlayerTimer import PlayerTimer
+from .events.DiscordOwnerEvent import DiscordOwnerEvent
 
 __all__ = [
     'ApiModel',
     'bcrypt',
+    'CheckUser',
     'db',
-    'User',
+    'DiscordApp',
+    'DiscordGame',
+    'DiscordOwner',
+    'DiscordOwnerEvent',
+    'DiscordStreamer',
+    'DiscordUser',
+    'Event',
+    'EventLevel',
+    'Game',
+    'Level',
+    'Player',
+    'PlayerTimer',
     'Role',
-    'UserRole',
     'Streamer',
     'Token',
-    'CheckUser',
-    'DiscordUser',
-    'DiscordStreamer',
-    'DiscordApp',
-    'Game',
-    'DiscordGame',
-    'DiscordOwner'
+    'User',
+    'UserRole',
+    'UserStreamer'
 ]

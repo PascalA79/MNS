@@ -3,7 +3,6 @@ from app.constants import ApiConstant
 import uuid
 from utility import dict_merge, split_string, convert_to_int_if_possible, get_attribute, has_attribute, get_all_subclasses, to_pascal_case, delete_keys
 from sqlalchemy.schema import UniqueConstraint
-import re
 from typing import Self
 from DecoderQuery import DecoderQuery, QueryObject
       
@@ -34,15 +33,23 @@ class ApiModel(db.Model):
             return bool(self)
 
     __abstract__ = True
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_public = db.Column(db.String, unique=True, index=True, nullable=False, default=None)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
                            onupdate=db.func.current_timestamp())
     # deleted_at = db.Column(db.DateTime, default=None, nullable=True)
-
     __column_dict:dict = None
     __column_sub_resource:dict = None
+
+    @classmethod
+    def renew_eTag(cls):
+        cls.__eTag = uuid.uuid4()
+    @classmethod
+    def get_eTag(cls):
+        return cls.__eTag
+
+    __eTag = uuid.uuid4()
 
     @classmethod
     def validate_convert_column(cls,convert_column:dict):
@@ -116,7 +123,7 @@ class ApiModel(db.Model):
     @classmethod
     def insert(cls, data, errors:__ErrorsDict = None):
         data =dict(data)
-        if errors is None:
+        if not errors:
             errors = ApiModel.create_api_errors()
         delete_keys(data, 
             'created_at',
@@ -136,10 +143,15 @@ class ApiModel(db.Model):
         new_item = None
         if not errors:
             class_props = vars(cls).keys()
-            new_data = {key: value for key, value in data.items() if key in class_props}
+            test = vars(cls)
+            new_data = {}
+            for key, value in test.items():
+                if key in class_props and not get_attribute(cls, key + '.prop.back_populates', False) and not key.startswith('_') and not callable(getattr(cls, key)) and not hasattr(getattr(cls, key), 'fget'):
+                    new_data[key] = data.get(key)
             new_item = cls(**new_data)
             db.session.add(new_item)
             db.session.commit()
+            cls.renew_eTag()
         else:
             db.session.rollback()
         return new_item, errors
@@ -158,14 +170,16 @@ class ApiModel(db.Model):
                     'id',
                     'id_public'
                 )
-
+            class_props = vars(cls).keys()
             for key, value in data.items():
-                setattr(item, key, value)
+                if key in class_props and not get_attribute(cls, key + '.prop.back_populates', False) and not key.startswith('_') and not callable(getattr(cls, key)) and not hasattr(getattr(cls, key), 'fget'):
+                    setattr(item, key, value)
             item.updated_at = db.func.current_timestamp()
             error_validate = cls.validate(cls,data,str(id_public))
             errors = dict_merge(errors,error_validate)
             if not errors:
                 db.session.commit()
+                cls.renew_eTag()
             else:
                 db.session.rollback()
         else:
@@ -181,18 +195,32 @@ class ApiModel(db.Model):
         db.session.commit()
         return bool(item)
     
-    def delete_where(cls, **condition):
+    @classmethod
+    def delete_where(cls, **conditions):
         """
-        Supprime les enregistrements de la table qui satisfont à la condition donnée.
-        :param condition: Condition SQLAlchemy pour filtrer les enregistrements à supprimer.
-        :return: Le nombre d'enregistrements supprimés.
+        Deletes records in the table that match the given conditions.
+        
+        :param conditions: SQLAlchemy filter conditions as keyword arguments.
+        :return: The number of records deleted.
         """
-        items = cls.query.filter(condition).all()
-        for item in items:
-            db.session.delete(item)
-            # item.deleted_at = db.func.current_timestamp()
-        db.session.commit()
-        return len(items)
+        try:
+            # Filter records matching the conditions
+            query = cls.query.filter_by(**conditions)
+            
+            # Count the number of records to be deleted
+            count = query.count()
+            
+            if count > 0:
+                # Delete the records
+                query.delete(synchronize_session=False)
+                db.session.commit()
+            
+            return count
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error during deletion: {e}")
+            return 0
+
     
     def validate(self, data:dict, item_id = None):
         errors = ApiModel.create_api_errors()
@@ -311,6 +339,3 @@ if __name__ == '__main__':
             User.delete(user_to_delete.id)
             #db.session.delete(user_to_delete)
             #db.session.commit()
-
-
-

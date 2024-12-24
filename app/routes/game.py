@@ -41,6 +41,10 @@ def addGame():
         return make_response({'errors': errors, 'status':False}, ApiConstant.Http.BAD_REQUEST)
     return make_response({'game_id': new_game.id_public, 'status':True}, ApiConstant.Http.CREATED)
 
+@game_blueprint.route('/', methods=['HEAD'])
+def headGames():
+    return make_response('', ApiConstant.Http.OK, {'ETag': Game.get_eTag()})
+
 @game_blueprint.route('/<uuid:game_id>', methods=['GET'])
 def getGame(game_id:uuid):
     game = Game().getOne(game_id)
@@ -60,7 +64,8 @@ def getGames():
     filters = request.args.to_dict()
     games = game.getAll(**filters)
     game_list = [dict(game) for game in games]
-    return {'games':game_list, 'status':True}
+    result = {'games':game_list, 'status':True}
+    return make_response(result, ApiConstant.Http.OK, {'ETag': Game.get_eTag()})
 
 @game_blueprint.route('/<uuid:game_id>', methods=['DELETE'])
 def deleteGame(game_id:uuid):
