@@ -147,29 +147,29 @@ def updateUser(user_id:uuid):
         current_roles =  user.user_roles
         for role in current_roles:
             db.session.delete(role)
-            db.session.commit()
         errors = UserRole.create_api_errors()
         new_roles = request.form.getlist('roles')
-        streamer = request.form.get('streamer')
+        streamer_id = request.form.get('streamer')
         for role_id in new_roles:
-            _, errors = user_role_model.insert(user.id_public,role_id, errors)
+            _, errors = user_role_model.insert(user.id_public, role_id, errors)
         data = dict(request.form)
         user_streamer = UserStreamer()
-        if not streamer:
-            user_streamer.delete_where(user_id=user.id)
-        else:
-            _, errors = user_streamer.insert(user.id_public, streamer, errors)
 
+        user_streamer.delete_where(user_id=user.id)
+        if streamer_id:
+            _, errors = user_streamer.insert(user.id_public, streamer_id, errors)
+        
         new_user, errors = user.update(user.id_public, data, errors)
 
         if errors:
             db.session.rollback()
-            return make_response({'status':False,'errors': errors}, ApiConstant.Http.BAD_REQUEST)
-        return {'status': True}
+            return make_response({'status': False, 'errors': errors}, ApiConstant.Http.BAD_REQUEST)
+        else:
+            db.session.commit()
+            return {'status': True}
     return make_response({'status': False, 'user_id': ApiConstant.Errors.NOT_FOUND}, ApiConstant.Http.NOT_FOUND)
 
-@user_blueprint.route('/self', methods=['POST'])
-def addUserSelf():
+
     user = User()
     form = request.form
     new_user, errors, check_user = user.insert_self(form)
@@ -181,4 +181,3 @@ def addUserSelf():
 @user_blueprint.route('/', methods=['HEAD'])
 def headUsers():
     return make_response('', ApiConstant.Http.OK, {'ETag': User.get_eTag()})
-
