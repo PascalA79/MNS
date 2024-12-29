@@ -133,8 +133,8 @@ async function createAdminPannel(){
             allStreamers = DataFormator.convert_to_multivalue(data.streamers, 'streamer_id', 'pseudo')
             crud_user.fields.find(field=>field.name=='streamer').validator.allowed_values = allStreamers
             crud_discord.fields.find(field=>field.name=='streamers').validator.allowed_values = allStreamers
-            crud_discord.renew()
-            crud_user.renew()
+            crud_discord.updateData()
+            crud_user.updateData()
         }
         this.state = true
         return DataFormator.reduce(data.streamers, 'streamer_id')
@@ -151,7 +151,7 @@ async function createAdminPannel(){
             allPlayers = DataFormator.convert_to_multivalue(data.players, null, 'pseudo')
             crud_timers.fields.find(field=>field.name=='player_id').validator.allowed_values = allUsers
             crud_timers.fields.find(field=>field.name=='event_id').validator.allowed_values = allEvents
-            crud_timers.renew()
+            crud_timers.updateData()
         }
         this.state = true
         return DataFormator.reduce(formated_data_player, 'event_id')
@@ -171,7 +171,7 @@ async function createAdminPannel(){
         if(this.state){
             allGames = DataFormator.convert_to_multivalue(data.games, 'game_id', 'name')
             crud_discord.fields.find(field=>field.name=='games').validator.allowed_values = allGames
-            crud_discord.renew()
+            crud_discord.updateData()
         }
         this.state = true
         return DataFormator.reduce(data.games, 'game_id')
@@ -193,8 +193,8 @@ async function createAdminPannel(){
             crud_event.fields.find(field=>field.name=='user_id').validator.allowed_values = allUsers
             crud_event.fields.find(field=>field.name=='players').validator.allowed_values = allUsers
             crud_timers.fields.find(field=>field.name=='player_id').validator.allowed_values = allUsers
-            crud_event.renew()
-            crud_timers.renew()
+            crud_event.updateData()
+            crud_timers.updateData()
 
         }
         this.state = true
@@ -206,7 +206,7 @@ async function createAdminPannel(){
         if(this.state){
             allRoles = DataFormator.convert_to_multivalue(data.roles, 'role_id', 'name')
             crud_user.fields.find(field=>field.name=='roles').validator.allowed_values = allRoles
-            crud_user.renew()
+            crud_user.updateData()
         }
         this.state = true
         return DataFormator.reduce(data.roles, 'role_id')
@@ -220,7 +220,7 @@ async function createAdminPannel(){
         if(this.state){
             allLevels = DataFormator.convert_to_multivalue(data.levels, 'level_id', 'code')
             crud_event.fields.find(field=>field.name=='levels').validator.allowed_values = allLevels
-            crud_event.renew()
+            crud_event.updateData()
         }
         this.state = true
         return DataFormator.reduce(data.levels, 'level_id')

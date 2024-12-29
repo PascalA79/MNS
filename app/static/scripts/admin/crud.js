@@ -95,43 +95,6 @@ class Validation{
             return Object.values(this)
         }
     }
-    static Multivalue = class{
-        static convert_to_multivalue(data = [], key, value){
-            return data.levels.reduce((acc, item) => 
-                ({ ...acc, [item[key]]: item[value] }), {}
-            );
-        }
-        constructor(allowed_values = {}, foreign_key, key_name, isMultiValue = true) {
-            this.allowed_values = allowed_values
-            this.isMultiValue = isMultiValue
-            this.foreign_key = foreign_key
-            this.key_name = key_name
-        }
-        values(){
-            return Object.values(this.allowed_values)
-        }
-        keys(){
-            return Object.keys(this.allowed_values)
-        }
-        join(data = {}, key_name, join_table = {}, key_join, key_allowed_values) {
-            // Créer un objet pour les recherches rapides
-            const joinMap = {};
-            Object.values(join_table).forEach(value_join_table => {
-                const key = value_join_table[key_join];
-                if (!joinMap[key]) {
-                    joinMap[key] = [];
-                }
-                joinMap[key].push(this.allowed_values[value_join_table[key_allowed_values]]);
-            });
-
-            // Itérer sur les données et utiliser l'objet pour les jointures
-            Object.entries(data).forEach(([key_data, item_data]) => {
-                item_data[key_name] = joinMap[key_data] || [];
-            });
-
-            return data;
-        }
-    }
     constructor({f_validate = (value)=>true, required = true, type = Validation.Type.STRING, allowed_values = null, is_multivalue = true}) {
         this.f_validate = f_validate
         this.required = required
@@ -201,6 +164,12 @@ class CRUD{
             }
         }
     }
+    static Item = class{
+        constructor({id, data}){
+            this.id = id
+            this.data = data
+        }
+    }
     #idContainer
     #f_formatData
     #title
@@ -213,6 +182,7 @@ class CRUD{
     #is_update
     #is_delete
     #eTag
+    #currents_data = {}
     constructor(idContainer, title, baseURL, actions, f_formatData, ...fields){
         this.#idContainer = idContainer
         this.#f_formatData = f_formatData
@@ -233,7 +203,7 @@ class CRUD{
             throw new CRUD.Action.READ_ACTION_REQUIRED_ERROR('READ action is required')
         }
         this.#eTag = null
-        this.renew()
+        this.build()
     }
     validate(formData){
         const errors = {}
@@ -250,7 +220,6 @@ class CRUD{
     }
     #createForm(id_item = null){
         const item = this.getOne(id_item)
-
         const rowCreate = $('<tr>')
 
         rowCreate.addClass(id_item? 'update_item': 'new_item')
@@ -314,10 +283,11 @@ class CRUD{
                 input.appendTo(td)
             }
             else if(field.validator.type == Validation.Type.TIMER){
+                const intToTimer = ms => `${String(Math.floor(ms / 3600000)).padStart(2, '0')}:${String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}.${String(ms % 1000).padStart(3, '0')}`;
                 const input = $('<input>').attr({
                     type: 'time',
                     name: field.name,
-                    value: item[field.name] || field.default,
+                    value: intToTimer(item[field.name] || field.default),
                     disabled: is_disabled,
                     step:"0.1"
 
@@ -504,24 +474,65 @@ class CRUD{
         this.#table.appendTo(form);
         form.appendTo($(`#${this.#idContainer}`))
     }
-    renew(){
+    #createRow(key, value, extra_td=null){
+        const tr = $('<tr>').attr('id', key);
+        for (let field of this.fields) {
+            let td = $('<td>');
+            if (Array.isArray(value[field.name]) && value[field.name].length) {
+                const select = $('<select>').attr({
+                    readonly: true,
+                    name: field.name
+                });
+                value[field.name].forEach(option => {
+                    $('<option>').val(option).text(option).appendTo(select);
+                });
+                td.append(select);
+            } else if (field.validator.type == Validation.Type.TIMER) {
+                const intToTimer = ms => `${String(Math.floor(ms / 3600000)).padStart(2, '0')}:${String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}.${String(ms % 1000).padStart(3, '0')}`;
+                const input = $('<input>').attr({
+                    type: 'time',
+                    readonly: true,
+                    value: intToTimer(value[field.name]),
+                    name: field.name,
+                    step: '0.1'
+                });
+                td.append(input);
+            } else {
+                const input = $('<input>').attr({
+                    type: 'text',
+                    readonly: true,
+                    value: value[field.name],
+                    name: field.name
+                });
+                td.append(input);
+            }
+            td.appendTo(tr);
+        }
+        if(extra_td){
+            const buttons = $('<div>')
+            if(this.#is_update) buttons.append(this.#createUpdateButton())
+            if(this.#is_delete) buttons.append(this.#createDeleteButton())
+            const td_buttons = $('<td>')
+            buttons.appendTo(td_buttons)
+            tr.append(td_buttons)
+        }
+        return tr;
+    }
+    build(){
         $(`#${this.#idContainer}`).empty()
         this.#thead.empty();
         this.#tbody.empty();
         this.#table.empty();
         this.#displayCRUD()
-        this.fillData()
+        this.updateData()
     }
-    fillData(){
-        if(!this.#is_read){
-            if(this.#is_create)
-            {
-                this.#createForm().appendTo(this.#tbody)
-            }
+    updateData(){
+        if(!this.#is_read && this.#is_create){
+            this.#createForm().appendTo(this.#tbody)
             return
         }
         const extra_td = +(this.#is_update || this.#is_delete || this.#is_create)
-        $(`#${this.#idContainer} button`).attr('disabled',true)
+        // $(`#${this.#idContainer} button`).attr('disabled',true)
         const headers = new Headers();
         headers.append('Authorization', getToken());
         const request = new Request(this.#baseURL, {
@@ -534,7 +545,7 @@ class CRUD{
                 this.#eTag = response.headers.get('eTag')
                 return response.json();
             } else {
-                $(`#${this.#idContainer} button`).attr('disabled',false)
+                // $(`#${this.#idContainer} button`).attr('disabled',false)
                 throw new Error('Erreur de réseau');
             }
         })
@@ -542,53 +553,30 @@ class CRUD{
             const formatedData = this.#f_formatData(data);
             Object.entries(formatedData).forEach(entry => {
                 const [key, value] = entry;
-                const tr = $('<tr>').attr('id', key);
-                for (let field of this.fields) {
-                    let td = $('<td>');
-                    if (Array.isArray(value[field.name])) {
-                      
-                        const select = $('<select>').attr({
-                            readonly: true,
-                            name:field.name
-                        });
-                        value[field.name].forEach(option => {
-                            $('<option>').val(option).text(option).appendTo(select);
-                        });
-                        td.append(select);
-                    } 
-                    else if  (field.validator.type == Validation.Type.TIMER) {
-                        const intToTimer = ms => `${String(Math.floor(ms / 3600000)).padStart(2, '0')}:${String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0')}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}.${String(ms % 1000).padStart(3, '0')}`;
-                        const input = $('<input>').attr({
-                            type: 'time',
-                            readonly: true,
-                            value: intToTimer(value[field.name]),
-                            name: field.name,
-                            step:'0.1'
-                        });
-                        td.append(input);
+                let tr = null;
+                if(key in this.#currents_data){
+                    if(JSON.stringify(this.#currents_data[key]) == JSON.stringify(value)){
+                        delete this.#currents_data[key]
+                        return
                     }
-
-                    else {
-                        const input = $('<input>').attr({
-                            type: 'text',
-                            readonly: true,
-                            value: value[field.name],
-                            name: field.name
-                        });
-                        td.append(input);
+                    else if($(`#${this.#idContainer} #${key}:not(.update_item)`).length){  
+                        tr = this.#createRow(key, value, extra_td) 
+                        $(`#${this.#idContainer} #${key}`).replaceWith(tr)
                     }
-                    td.appendTo(tr);
+                    else{
+                        $(`#${this.#idContainer} #${key}`).remove()
+                    }
+                    delete this.#currents_data[key]
                 }
-                if(extra_td){
-                    const buttons = $('<div>')
-                    if(this.#is_update) buttons.append(this.#createUpdateButton())
-                    if(this.#is_delete) buttons.append(this.#createDeleteButton())
-                    const td_buttons = $('<td>')
-                    buttons.appendTo(td_buttons)
-                    tr.append(td_buttons)
+                if(!tr){
+                    tr = this.#createRow(key, value, extra_td)
+                    tr.appendTo(this.#tbody)
                 }
-                tr.appendTo(this.#tbody);
             });
+            for(let key in this.#currents_data){
+                $(`#${this.#idContainer} #${key}`).remove()
+            }
+            this.#currents_data = formatedData
             $(`#${this.#idContainer} button`).attr('disabled',false)
         })
         
@@ -627,7 +615,9 @@ class CRUD{
 
         fetch(request).then(response => {
             if (response.ok) {
-                this.renew()
+                $(`#${this.#idContainer} .new_item`).remove()
+                this.updateData()
+                return false
             } else {
                 return response.json();
             }
@@ -654,7 +644,8 @@ class CRUD{
 
         fetch(request).then(response => {
             if (response.ok) {
-                this.renew()
+                this.updateData()
+                $(`#${this.#idContainer} .update_item`).remove()
                 return false
             } else {
                 return response.json();
@@ -679,7 +670,7 @@ class CRUD{
 
         fetch(request).then(response => {
             if (response.ok) {
-                this.renew()
+                this.updateData()
             } else {
                 return response.json();
             }
@@ -696,28 +687,14 @@ class CRUD{
         });
     }
     getOne(item_id){
-        const formData = {};
-        let item = $(`#${this.#idContainer} #${item_id}`)
-        const elements = $(item).find('input, select, textarea');
-        elements.each(function() {
-            const element = $(this);
-            const name = element.attr('name');
-            let value;
-    
-            if (element.is('select')) {
-                value = value = element.find('option').map(function() { return $(this).val(); }).get();
-            }
-            else {
-                value = element.val();
-            }
-            formData[name] = value;
-        });
-        return formData;
+        return this.#currents_data[item_id] || {};
     }
-    
+    is_editited(){
+        return $(`.crud .new_item`).length || $(`.crud .update_item`).length
+    }
     start_partial_refresh(){
         setInterval(()=>{
-            if ($(this.#tbody).hasClass('new_item') || $(this.#tbody).hasClass('update_item')) {
+            if (this.is_editited()) {
                 return
             }
             fetch(this.#baseURL, {
@@ -736,7 +713,10 @@ class CRUD{
             .then((eTag)=>{
                 if(this.#eTag != eTag){
                     this.#eTag = eTag
-                    this.renew()
+                    if(this.is_editited()){
+                        return
+                    }
+                    this.updateData()
                 }
             })
             .catch(error => {
