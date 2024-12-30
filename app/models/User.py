@@ -72,6 +72,11 @@ class User(ApiModel):
             db.session.add(event)
         for user_streamer in user.user_streamers:
             db.session.delete(user_streamer)
+        for player in user.users:
+            for timer in player.timers:
+                db.session.delete(timer)
+            db.session.delete(player)
+
         db.session.commit()
         return super().delete(id_public)
     @property

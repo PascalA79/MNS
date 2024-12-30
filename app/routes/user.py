@@ -151,7 +151,8 @@ def updateUser(user_id:uuid):
         new_roles = request.form.getlist('roles')
         streamer_id = request.form.get('streamer')
         for role_id in new_roles:
-            _, errors = user_role_model.insert(user.id_public, role_id, errors)
+            if role_id:
+                _, errors = user_role_model.insert(user.id_public, role_id, errors)
         data = dict(request.form)
         user_streamer = UserStreamer()
 
