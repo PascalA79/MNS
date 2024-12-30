@@ -20,6 +20,9 @@ def create_JSON_db():
                 {column: value for column, value in zip(column_names, row)}
                 for row in rows
             ]
+        # créer le dossier migration
+        if not os.path.exists('app/migration'):
+            os.makedirs('app/migration')
         existing_files = os.listdir('app/migration')
         db_files = [file for file in existing_files if file.startswith('db') and file.endswith('.json')]
         numbers = [int(file[2:-5]) for file in db_files if file[2:-5].isdigit()]
@@ -38,6 +41,8 @@ def load_JSON_db(file_name, **function_migrations):
             with open(f"app/migration/{file_name}.json", 'r') as f:
                 data = json.load(f)
                 for table_name, rows in data.items():
+                    if table_name == 'tokens':
+                        continue
                     table = db.metadata.tables[table_name]
                     column_names = [column.name for column in table.columns]
                     column_types = {column.name: column.type for column in table.columns}
@@ -79,8 +84,8 @@ def import_streamer(file_path):
                 })
 
 if __name__ == '__main__':
-    # create_JSON_db()
-    def test_migration(row):
-        return row
-    # load_JSON_db('db1', roles=test_migration)
+    create_JSON_db()
+    # def test_migration(row):
+    #     return row
+    # load_JSON_db('db2')
     ...
