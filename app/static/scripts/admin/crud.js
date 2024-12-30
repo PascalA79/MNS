@@ -471,8 +471,10 @@ class CRUD{
         trHeader.appendTo(this.#thead);
         this.#thead.appendTo(this.#table);
         this.#tbody.appendTo(this.#table);
-        this.#table.appendTo(form);
-        form.appendTo($(`#${this.#idContainer}`))
+        if(!$(`#${this.#idContainer}`).find('form').length){
+            this.#table.appendTo(form);
+            form.appendTo($(`#${this.#idContainer}`))
+        }
     }
     #createRow(key, value, extra_td=null){
         const tr = $('<tr>').attr('id', key);
@@ -532,7 +534,6 @@ class CRUD{
             return
         }
         const extra_td = +(this.#is_update || this.#is_delete || this.#is_create)
-        // $(`#${this.#idContainer} button`).attr('disabled',true)
         const headers = new Headers();
         headers.append('Authorization', getToken());
         const request = new Request(this.#baseURL, {
@@ -617,6 +618,8 @@ class CRUD{
             if (response.ok) {
                 $(`#${this.#idContainer} .new_item`).remove()
                 this.updateData()
+                this.#thead.empty();
+                this.#displayCRUD();
                 return false
             } else {
                 return response.json();
