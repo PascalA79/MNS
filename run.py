@@ -12,16 +12,21 @@ async def check_streamers_periodically(notif_discord:NotifDiscord):
             await notif_discord.check_streamers()
             await asyncio.sleep(30)
 
+async def clean_token_periodically():
+    with app.app_context():
+        while True:
+            Token.delete_expired_tokens()
+            await asyncio.sleep(60*5)
+
 Config.default()
 app = init.create_app()
 register_routes(app)
 
 async def main():
-    notif_discord = NotifDiscord()
     await asyncio.gather(
-        # for development purposes
-        check_streamers_periodically(notif_discord),
-        notif_discord.run(),
+        check_streamers_periodically(init.notif_discord),
+        clean_token_periodically(),
+        init.notif_discord.run(),
     )
 
 def run_asyncio_loop():

@@ -20,23 +20,21 @@ class Config:
         discord_user = DiscordUser()
         role.insert({'name':'admin'})
         role.insert({'name':'modo'})
-        role.insert({'name':'verified'})
-        role.insert({'name':'sudo'})
-        role.insert({'name':'owner'})
+        role.insert({'name':'organisateur'})
+        role.insert({'name':'discord owner'})
         user.insert({'pseudo':'admin', 'password':'qwerty123!'}) 
 
         admin = user.getAll(**{'pseudo':'admin'}).pop(0)
         admin_role = role.getAll(**{'name':'admin'}).pop(0)
-        verified_role = role.getAll(**{'name':'verified'}).pop(0)
 
         user_role.insert(admin.id_public,admin_role.id_public)
-        user_role.insert(admin.id_public,verified_role.id_public)
-        discord_user.insert({'user_id':admin.id, 'discord_id': DISCORD_ADMIN_ID})
+        discord_user.insert({'user_id':admin.id, 'id_discord': DISCORD_ADMIN_ID})
         
     @staticmethod
-    def default() -> None:
+    def default(migration:bool=False) -> None:
         from app.models import Streamer, Role, User, UserRole, CheckUser, DiscordUser, DiscordApp, DiscordStreamer, Game, DiscordGame, UserStreamer
         from app.models import Event, EventLevel, Level, Player, PlayerTimer
+        from app.models import Commande, CommandeGuild, CommandeGuildPermission
         from Twitch import Twitch
         from NotifDiscord import NotifDiscord
         Twitch.set_default_client(TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET)
@@ -44,6 +42,7 @@ class Config:
         NotifDiscord.set_public_key(DISCORD_PUBLIC_KEY)
         Level.set_level_image_file(LEVEL_IMAGE_FILE)
         Level.set_creator_image_file(CREATOR_IMAGE_FILE)
+        Streamer.set_is_in_migration(migration)
         
         Streamer.set_dict_key(
             {
@@ -130,13 +129,13 @@ class Config:
             {
                 'discord_user_id':'id_public',
                 'user_id': 'user.id_public',
-                'discord_id': 'discord_id'
+                'id_discord': 'id_discord'
             }
         )
         DiscordUser.set_sub_resource_key(
             {
                 'pseudo': 'user.pseudo',
-                'discord_id': 'discord_id'
+                'id_discord': 'id_discord'
             }
         )
         DiscordStreamer.set_dict_key(
@@ -152,20 +151,17 @@ class Config:
                 'id_twitch': 'streamer.id_twitch',
                 'streamer_id': 'streamer.id_public',
                 'discord_app_id': 'discord_app.id_public',
-                'discord_app_name': 'discord_app.name',
             }
         )
         DiscordApp.set_dict_key(
             {
                 'discord_app_id':'id_public',
-                'name': 'name',
                 'id_guild': 'id_guild',
                 'id_channel': 'id_channel'
             }
         )
         DiscordApp.set_sub_resource_key(
             {
-                'name': 'name',
                 'id_guild': 'id_guild',
                 'id_channel': 'id_channel'
             }
@@ -194,7 +190,6 @@ class Config:
             {
                 'game_id': 'game.id_public',
                 'discord_app_id': 'discord_app.id_public',
-                'discord_app_name': 'discord_app.name',
                 'game_name': 'game.name',
             }
         )
@@ -281,6 +276,45 @@ class Config:
                 'level_code': 'level.code',
                 'player_id': 'player.id_public',
                 'timer': 'timer'
+            }
+        )
+        Commande.set_dict_key(
+            {
+                'commande_id':'id_public',
+                'name': 'name'
+            })
+        Commande.set_sub_resource_key(
+            {
+                'name': 'name'
+            }
+        )
+        CommandeGuild.set_dict_key(
+            {
+                'command_guild_id':'id_public',
+                'command_id': 'commande.id_public',
+                'guild_id': 'discord_app.id_public'
+            }
+        )
+        CommandeGuild.set_sub_resource_key(
+            {
+                'command_id': 'commande.id_public',
+                'guild_id': 'discord_app.id_public',
+                'id_guild': 'discord_app.id_guild'
+            }
+        )
+        CommandeGuildPermission.set_dict_key(
+            {
+                'commande_guild_permission_id':'id_public',
+                'permission': 'permission',
+                'allow_permission': 'allow_permission',
+                'command_guild_id': 'commande_guild.id_public'
+            }
+        )
+        CommandeGuildPermission.set_sub_resource_key(
+            {
+                'command_guild_id': 'commande_guild.id_public',
+                'permission': 'permission',
+                'allow_permission': 'allow_permission',
             }
         )
 

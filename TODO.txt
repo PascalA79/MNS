@@ -1,0 +1,58 @@
+Permission des commandes
+Créer les tables
+[X] commande[commande_name(str)]
+[X] commande_guild[commande_id(int), guild_id(int)]
+[X] commande_guild_permission[commande_id(int), guild_id(int), permission(str), allow_permission(bool)]
+
+permission est l'identifiant discord d'une personne, role. 
+deny_permission est prioritaire sur allow_permission
+admin et owner ont toujours accès à toutes les commandes
+----------------------------------------------------------
+[X] Coder l'interface de gestion des permissions
+guild_id | commande_id | permission_allow(list) | permission_deny(list)
+----------------------------------------------------------
+Implémenter les commandes
+[X] Dans config, ajouter automatiquement commandes et commandes_guild
+CRUD
+[X] /api/commandes GET
+[X] GET/guild/:id
+[X] PATCH
+GET/commandes/:id
+{
+    'commandes':{
+        'commande_id': uuid
+        'commande_name': str,
+    }
+    'commande_guild':{
+        commande_guild_id_public:{
+            'commande_id': uuid,
+            'guild_id': int,
+        }
+    }
+    'commande_guild_allow_permission':{
+        commande_guild_allow_permission_id_public:{
+            'commande_id': uuid,
+            'guild_id': int,
+            'permission': str,
+        }
+    },
+    'commande_guild_deny_permission':{
+        commande_guild_deny_permission_id_public:{
+            'commande_id': uuid,
+            'guild_id': int,
+            'permission': str,
+        }
+    }
+}
+[X] Implémenter les permissions pour le bot
+[X] Ajouter la gestion des permissions dans le bot
+[X] Ajouter les fonctions reset et get de la commande permission
+[ ] Vérifier la migration
+[ ] Si une erreur survient dans un champ à choix multiple côté web, seule la colonne concernée doit afficher une erreur
+[ ] Ajouter la validation client sur les colonnes Allow/Deny Permission
+[ ] Corriger la section Discord à la page /admin/index.html
+[?] Ajouter le rollback lorsqu'il y a une erreur dans les permissions
+-------------------------------------------
+[ ] Mettre à jour les serveurs qui rejoignent, quittent
+[ ] Mettre à jour les serveurs lorsque le bot démarre
+

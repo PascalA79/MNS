@@ -3,22 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/formulaire.css">
     <script src="scripts/jquery.js"></script>
     <script src="scripts/functions.js"></script>
+    <script src="scripts/formulaire.js"></script>
     <script src="scripts/login.js"></script>
     <title>Login</title>
 </head>
 <body>
     <header></header>
     <main class="dark-background">
-        <div id="loginForm">
-            <form action="/token" method="POST">
-                <label for="pseudo">Pseudo</label><input id="pseudo" name="pseudo"type="text">
-                <label for="password">Mot de passe</label><input id="password" name="password" type="password">
-                <button type="submit">Connection</button>
-                <a href="/register.html">s'inscrire</a>
-            </form>
-        </div>
+        <section id="connection" class="rotation90"></section>
         <script>
             fillHeader('{{pseudo}}', {{ roles | tojson }})
         </script>

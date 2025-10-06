@@ -9,8 +9,8 @@ class Field{
         this.fillable = fillable
     }
 
-    validate(value){
-        return this.validator.validate(value)
+    validate(form,value){
+        return this.validator.validate(form, value)
     }
 }
 
@@ -31,6 +31,9 @@ class DataFormator{
         const joinMap = {};
         let join_table_values = Object.values(join_table)
         for (const join_item of join_table_values) {
+            if(!key_name){
+                break
+            }
             const key = join_item[foreign_key];
             if (!joinMap[key]) {
                 joinMap[key] = [];
@@ -38,7 +41,12 @@ class DataFormator{
             joinMap[key].push(join_map[join_item[key_name]]);
         }
         for (const item of data) {
-            item[field_name] = joinMap[item[foreign_key]] || [];
+            if(key_name){
+                item[field_name] = joinMap[item[foreign_key]] || [];
+            }
+            else{
+                item[field_name] = Object.values(join_table[item[foreign_key]]) || [];
+            }
         }
     
         return data;
@@ -54,6 +62,9 @@ class DataFormator{
             ({ ...acc, [item[key]]: item }), {}
         );
     }
+    static assign(...data){
+        return Object.assign({}, ...data)
+    }
 }
 
 class Erreur{
@@ -68,6 +79,7 @@ class Erreur{
     static MUTTIPLE_VALUE_NOT_ALLOWED = 'MUTTIPLE_VALUE_NOT_ALLOWED'
     static NOT_FOUND = 'NOT_FOUND'
     static NOT_FOUND_ON_SMM2 = 'NOT_FOUND_ON_SMM2'
+    static SAME_VALUE_ONLY = 'SAME_VALUE_ONLY'
     static message = {
         [Erreur.INVALID_DATA_TYPE]: 'Type de donnée invalide',
         [Erreur.UNIQUE_CONSTRAINT_VIOLATION]: 'Violation de contrainte d\'unicité',
@@ -79,9 +91,11 @@ class Erreur{
         [Erreur.VALUE_NOT_ALLOWED]: 'Valeur non autorisée',
         [Erreur.MUTTIPLE_VALUE_NOT_ALLOWED]: 'Valeur multiple non autorisée',
         [Erreur.NOT_FOUND]: 'Introuvable',
-        [Erreur.NOT_FOUND_ON_SMM2]: 'Introuvable sur SMM2'
+        [Erreur.NOT_FOUND_ON_SMM2]: 'Introuvable sur SMM2',
+        [Erreur.SAME_VALUE_ONLY] : 'Les valeurs doivent être identiques'
     }
 }
+
 
 class Validation{
     static Type = class{
@@ -91,32 +105,57 @@ class Validation{
         static DATE = 'DATE'
         static DATE_TIME = 'DATE_TIME'
         static TIMER = 'TIMER'
+        static PASSWORD = 'PASSWORD'
+        static URL_IMAGE = 'URL_IMAGE'
+
         static toArray(){
             return Object.values(this)
         }
     }
-    constructor({f_validate = (value)=>true, required = true, type = Validation.Type.STRING, allowed_values = null, is_multivalue = true}) {
+    static comparator = {
+        [this.Type.INTEGER]: (a,b)=>a-b,
+        [this.Type.NUMBER]: (a,b)=>a-b,
+        [this.Type.STRING]: (a,b)=>a.localeCompare(b),
+        [this.Type.DATE]: (a,b)=>new Date(a) - new Date(b),
+        [this.Type.DATE_TIME]: (a,b)=>new Date(a) - new Date(b),
+        [this.Type.TIMER]: (a,b)=>a-b,
+        [this.Type.PASSWORD]: (a,b)=>a.localeCompare(b),
+        [this.Type.URL_IMAGE]: (a,b)=>a.localeCompare(b)
+    }
+    static SortDirection = class{
+        static ASC = 'ASC'
+        static DESC = 'DESC'
+    }
+    static SortItem = class{
+        constructor(key, direction=Validation.SortDirection.ASC){
+            this.key = key
+            this.direction = direction
+        }
+    }
+    static GroupItem = class{
+        constructor(key, name){
+            this.key = key
+            this.name = name
+        }
+    }
+    constructor({f_validate = (value, form)=>true,f_error = Erreur.INVALID_DATA_TYPE , required = true, type = Validation.Type.STRING, allowed_values = null, is_multivalue = true}) {
         this.f_validate = f_validate
+        this.f_error = f_error
         this.required = required
         this.type = type
         this.allowed_values = allowed_values
         this.is_multivalue = is_multivalue
     }
 
-    validate(...values){
+    validate(form, ...values){
         const errorMessages = []
         for(let item of values){
             if(!item && this.required){
                 errorMessages.push(Erreur.MISSING_REQUIRED_FIELD)
                 continue
             }
-            if(this.multivalue){
-                const allowed_values = this.multivalue.keys()
-                if(item && allowed_values.length && !(allowed_values.includes(item) || allowed_values.includes(undefined)))  errorMessages.push(Erreur.VALUE_NOT_ALLOWED)
-                if(!this.multivalue.is_multivalue && values.length>1) errorMessages.push(Erreur.MUTTIPLE_VALUE_NOT_ALLOWED)
-            }
-            if(!this.f_validate(item)){
-                // errorMessages.push(Erreur.INVALID_DATA_TYPE)
+            if(!this.f_validate(item, form)){
+                errorMessages.push(this.f_error)
             }
         }
         return errorMessages
@@ -152,7 +191,7 @@ class Validation{
 
 }
 
-class CRUD{
+class Formulaire{
     static Action = class{
         static CREATE = 'CREATE'
         static UPDATE = 'UPDATE'
@@ -182,7 +221,26 @@ class CRUD{
     #is_update
     #is_delete
     #eTag
+    #action_create
+    #action_read
+    #action_update
+    #action_delete
     #currents_data = {}
+    #sort_items = []
+    static #ready_flag = true
+    static #ready_formulaires = []
+    static setReadyFlag(flag){
+        Formulaire.#ready_flag = Boolean(flag)
+        if(Formulaire.#ready_flag){
+            for(let formulaire of Formulaire.#ready_formulaires){
+                formulaire.build()
+            }
+            Formulaire.#ready_formulaires = []
+        }
+    }
+    static getReadyFlag(){
+        return Formulaire.#ready_flag
+    }
     constructor(idContainer, title, baseURL, actions, f_formatData, ...fields){
         this.#idContainer = idContainer
         this.#f_formatData = f_formatData
@@ -193,25 +251,39 @@ class CRUD{
         this.#table.addClass('crud')
         this.#thead = $('<thead>')
         this.#tbody = $('<tbody>')
-        this.#is_create = actions.includes(CRUD.Action.CREATE);
-        this.#is_read = actions.includes(CRUD.Action.READ);
-        this.#is_update = actions.includes(CRUD.Action.UPDATE);
-        this.#is_delete = actions.includes(CRUD.Action.DELETE);
+        if (typeof actions === 'object' && actions !== null && !Array.isArray(actions)) {
+            this.#action_create = actions[Formulaire.Action.CREATE]
+            this.#action_read = actions[Formulaire.Action.READ]
+            this.#action_update = actions[Formulaire.Action.UPDATE]
+            this.#action_delete = actions[Formulaire.Action.DELETE]
+            actions = Object.keys(actions)
+        }
+        this.#is_create = actions.includes(Formulaire.Action.CREATE);
+        this.#is_read = actions.includes(Formulaire.Action.READ);
+        this.#is_update = actions.includes(Formulaire.Action.UPDATE);
+        this.#is_delete = actions.includes(Formulaire.Action.DELETE);
         if (!this.#is_read && (this.#is_update || this.#is_delete)){
             this.#is_update = false
             this.#is_delete = false
-            throw new CRUD.Action.READ_ACTION_REQUIRED_ERROR('READ action is required')
+            throw new Formulaire.Action.READ_ACTION_REQUIRED_ERROR('READ action is required')
         }
         this.#eTag = null
-        this.build()
+        if(Formulaire.#ready_flag){
+            this.build()
+        }
+        else{
+            Formulaire.#ready_formulaires.push(this)
+        }
+        
     }
     validate(formData){
         const errors = {}
+        const form = Object.fromEntries(formData)
         for(let [name, value] of formData)
         {
             let field = this.fields.find(field=>field.name==name)
             if(!field) continue            
-            let error = field.validate(value)
+            let error = field.validate(form, value)
             if(error.length){
                 errors[name] = error
             }
@@ -228,31 +300,51 @@ class CRUD{
             let is_disabled = (id_item && !field.changeable) || (!id_item && !field.fillable);
             if(field.validator.allowed_values){
                 const inputContainer  = $('<div class="multichoice">');
-                Object.entries(field.validator.allowed_values).forEach(([key,value]) => {
-                    let input;
-                    if(false && value == Infinity){
-                        input = $('<textarea>').attr({
-                            disabled: is_disabled,
+                let allowed_values = Object.values(field.validator.allowed_values)
+                if(Object.keys(field.validator.allowed_values).length && !Object.values(field.validator.allowed_values)[0].length){
+                    // if(!field.changeable && !id_item){
+                    //     allowed_values = Object.entries(field.validator.allowed_values).reduce((acc, [key, value])=>{
+                    //         acc[key] = Object.values(value)[0]
+                    //         return acc
+                    //     },{})
+                    // }
+                    // else{
+                        allowed_values = field.validator.allowed_values[id_item] || []
+                    // }
+                }
+                Object.entries(allowed_values).forEach(([key,value]) => {
+                    let input = $('<input>').attr({
+                        disabled: is_disabled,
+                        type: field.validator.is_multivalue ? 'checkbox' : 'radio',
+                        name: field.name,
+                        value: value!==Infinity ? key : undefined,
+                        required: field.validator.required,
+                        id:`CRUD_${field.name}_${value}_${key}`,
+                        checked: Boolean(item[field.name] && item[field.name].includes(value))
+                    }).on('click', function(){
+                        if(!field.validator.is_multivalue){
+                            inputContainer.find('input').prop('checked', false)
+                            input.prop('checked', true)
+                        }
+                    });
+                    let inputLabel;
+                    if(value == Infinity){
+                        inputLabel = $('<input>').attr({
+                            type: 'text',
                             name: field.name,
-                        }).css({
-                            minWidth: '100%'
-                        });
+                            disabled: is_disabled
+                        }).on('click', function(){
+                            input.prop('checked', true)
+                        }).on('change', function(){
+                            input.prop('value', $(this).val())
+                        });                       
                     }
                     else{
-                        input = $('<input>').attr({
-                            disabled: is_disabled,
-                            type: field.validator.is_multivalue ? 'checkbox' : 'radio',
-                            name: field.name,
-                            value: key,
-                            required: field.validator.required,
-                            id:`CRUD_${field.name}_${value}_${key}`,
-                            checked: Boolean(item[field.name] && item[field.name].includes(value))
-                        });
-                        const inputLabel = $('<label>').text(value).attr({
+                        inputLabel = $('<label>').text(value).attr({
                             for: `CRUD_${field.name}_${value}_${key}`
                         });
-                        inputContainer.append(input).append(inputLabel);
                     }
+                    inputContainer.append(input).append(inputLabel);
                     inputContainer.append(input);
                 });
                 const ErraseButton = $('<button>').text('Effacer').attr('type', 'button');
@@ -306,6 +398,15 @@ class CRUD{
             else if(field.validator.type == Validation.Type.NUMBER){
                 const input = $('<input>').attr({
                     type: 'number',
+                    name: field.name,
+                    value: item[field.name] || field.default,
+                    disabled: is_disabled
+                });
+                input.appendTo(td)
+            }
+            else if(field.validator.type == Validation.Type.PASSWORD){
+                const input = $('<input>').attr({
+                    type: 'password',
                     name: field.name,
                     value: item[field.name] || field.default,
                     disabled: is_disabled
@@ -458,7 +559,7 @@ class CRUD{
         }
         if(extra_th){
             let th = $('<th>');
-            if(this.#is_create){
+            if(this.#is_create && this.#is_read){
                 const addButton = this.#createAddButton()
                 const container = $('<div>')
                 container.append(addButton)
@@ -543,56 +644,71 @@ class CRUD{
 
         fetch(request).then(response => {
             if (response.ok) {
-                this.#eTag = response.headers.get('eTag')
+                this.#eTag = response.headers.get('ETag')
                 return response.json();
             } else {
-                // $(`#${this.#idContainer} button`).attr('disabled',false)
                 throw new Error('Erreur de réseau');
             }
         })
         .then((data)=>{
-            const formatedData = this.#f_formatData(data);
-            Object.entries(formatedData).forEach(entry => {
-                const [key, value] = entry;
-                let tr = null;
-                if(key in this.#currents_data){
-                    if(JSON.stringify(this.#currents_data[key]) == JSON.stringify(value)){
-                        delete this.#currents_data[key]
-                        return
+            const f_update = (formatedData)=>{
+                let sorted_data = Object.entries(formatedData)
+                if(this.#sort_items.length){
+                    this.#sort_items.forEach(sort_item=>{
+                    if(sort_item.key){
+                        sorted_data.sort((a,b)=>{
+                            if(sort_item.key){
+                                return Validation.comparator[this.fields.find(field=>field.name==sort_item.key).validator.type](a[1][sort_item.key],b[1][sort_item.key]) * (sort_item.direction == Validation.SortDirection.ASC ? 1 : -1)
+                            }
+                        })
                     }
-                    else if($(`#${this.#idContainer} #${key}:not(.update_item)`).length){  
-                        tr = this.#createRow(key, value, extra_td) 
-                        $(`#${this.#idContainer} #${key}`).replaceWith(tr)
-                    }
-                    else{
-                        $(`#${this.#idContainer} #${key}`).remove()
-                    }
-                    delete this.#currents_data[key]
-                }
-                if(!tr){
+                })}
+                this.#tbody.empty()
+                sorted_data.forEach(entry => {
+                    const [key, value] = entry;
+                    let tr = null;
                     tr = this.#createRow(key, value, extra_td)
                     tr.appendTo(this.#tbody)
+                    delete this.#currents_data[key]
+                    /*end new_item*/
+
+                });
+                for(let key in this.#currents_data){
+                    $(`#${this.#idContainer} #${key}`).remove()
                 }
-            });
-            for(let key in this.#currents_data){
-                $(`#${this.#idContainer} #${key}`).remove()
+                this.#currents_data = formatedData
+                $(`#${this.#idContainer} button`).attr('disabled',false)
+                
+                if (this.#action_read) {
+                    this.#action_read(data);
+                } 
             }
-            this.#currents_data = formatedData
-            $(`#${this.#idContainer} button`).attr('disabled',false)
-        })
-        
+            if (this.#f_formatData.constructor.name === 'AsyncFunction') {
+                this.#f_formatData(data).then((new_data=>f_update(new_data)))
+            }
+            else{
+                f_update(this.#f_formatData(data))
+            }
+        })  
     }
     createErrors(selector, jsonErrors){
         for(let [name, errors] of Object.entries(jsonErrors)){
             let field = $(selector).find(`[name="${name}"]`)
             if(errors.length){
-                field.addClass('erreur_CRUD')
                 field.nextAll('.message_error').remove()
+                field.addClass('erreur_CRUD')
+                let error_field = []
+                if(field.length >= 2){
+                    error_field = field.filter(':checked')
+                }
+                else[
+                    error_field = field
+                ]
                 for(let error of errors){
                     const message_error = $('<div>')
                     message_error.text(Erreur.message[error])
                     message_error.addClass('message_error')
-                    field.after(message_error)
+                    error_field.after(message_error)
                 }
             }
             else{
@@ -600,7 +716,7 @@ class CRUD{
                 field.nextAll('.message_error').remove()
             }
             field.on('click', function(){
-                $(this).removeClass('erreur_CRUD')
+                $(field).removeClass('erreur_CRUD')
                 $(this).nextAll('.message_error').remove()
             })
         }
@@ -613,13 +729,15 @@ class CRUD{
             body: formData,
             headers: headers
         });
-
         fetch(request).then(response => {
             if (response.ok) {
                 $(`#${this.#idContainer} .new_item`).remove()
                 this.updateData()
                 this.#thead.empty();
                 this.#displayCRUD();
+                if (this.#action_create) {
+                    this.#action_create(response.json());
+                }
                 return false
             } else {
                 return response.json();
@@ -630,7 +748,7 @@ class CRUD{
             if(data){
                 errors = data.errors
             }
-            this.createErrors(`#${this.#idContainer} .new_item`,errors);
+        this.createErrors(`#${this.#idContainer} .new_item`,errors);
         })
         .catch(error => {
             console.error('Erreur lors de l\'envoi de la requête AJAX', error);
@@ -639,7 +757,8 @@ class CRUD{
     updateItem(uuid,formData){
         const headers = new Headers();
         headers.append('Authorization', getToken());
-        const request = new Request(`${this.#baseURL}/${uuid}`, {
+        let url = this.#baseURL.includes(uuid) ? this.#baseURL : `${this.#baseURL}/${uuid}`
+        const request = new Request(url, {
             method: 'PATCH',
             body: formData,
             headers: headers
@@ -649,6 +768,11 @@ class CRUD{
             if (response.ok) {
                 this.updateData()
                 $(`#${this.#idContainer} .update_item`).remove()
+                $(`#${this.#idContainer}  #${uuid}`).show()
+                if (this.#action_update) {
+                    this.#action_update(uuid, formData);
+                    return;
+                }
                 return false
             } else {
                 return response.json();
@@ -684,6 +808,9 @@ class CRUD{
                 errors = data.errors
             }
             this.createErrors(`#${this.#idContainer} #${uuid}` , errors);
+            if (this.#action_delete) {
+                this.#action_delete(uuid);
+            }
         })
         .catch(error => {
             console.error('Erreur lors de l\'envoi de la requête AJAX', error);
@@ -695,20 +822,42 @@ class CRUD{
     is_editited(){
         return $(`.crud .new_item`).length || $(`.crud .update_item`).length
     }
-    start_partial_refresh(){
+    sortData(...sort_items){
+        sort_items.forEach(sort_item=>{
+            if(!this.fields.find(field=>field.name==sort_item.key)){
+                throw new Error('Invalid key')
+            }
+        })
+        this.#sort_items = sort_items
+        this.updateData()
+    }
+    // groupData(...group_data){
+    //     group_data.forEach(group_item=>{
+    //         if(!this.fields.find(field=>field.name==group_item.key)){
+    //             throw new Error('Invalid key')
+    //         }
+    //     })
+    //     this.updateData()
+    // }
+    start_partial_refresh(refresh_rate = 2000){
+        let base_url = this.#baseURL
+        let regex = /\/[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}/
+        if(base_url.match(regex)){
+            base_url = base_url.replace(regex, '');
+        }
         setInterval(()=>{
             if (this.is_editited()) {
                 return
             }
-            fetch(this.#baseURL, {
+            fetch(base_url, {
                 method: 'HEAD',
                 headers: {
                     'Authorization': getToken(),
-                    'eTag': this.#eTag
+                    'ETag': this.#eTag
                 }
             }).then(response => {
                 if (response.ok) {
-                    return response.headers.get('eTag');
+                    return response.headers.get('ETag');
                 } else {
                     throw new Error('Erreur de réseau');
                 }
@@ -725,7 +874,7 @@ class CRUD{
             .catch(error => {
                 console.error(error);
             });
-        }, 2000)
+        }, refresh_rate)
     }
 
 }

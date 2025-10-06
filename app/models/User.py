@@ -1,4 +1,5 @@
-from app.models import db, bcrypt, ApiModel, CheckUser, Role, User, UserRole
+from app.models import db, bcrypt, ApiModel, CheckUser, Role, User
+from flask import request
 from utility import delete_keys
 
 class User(ApiModel):
@@ -46,6 +47,9 @@ class User(ApiModel):
         new_data = dict(data)
         if not force_update_all:
             delete_keys(new_data, 'password')
+        else:
+            if 'new_password' in data and data['new_password']:
+                new_data['password'] = bcrypt.generate_password_hash(new_data['new_password']).decode('utf-8')
         return super().update(id_public, new_data, errors, force_update_all)
     
     @classmethod
@@ -80,9 +84,6 @@ class User(ApiModel):
         db.session.commit()
         return super().delete(id_public)
     @property
-    def is_verified(self):
-        return 'verified' in [role.role.name for role in self.user_roles]
-    @property
     def is_admin(self):
         return 'admin' in [role.role.name for role in self.user_roles]
     @property
@@ -91,4 +92,7 @@ class User(ApiModel):
     @property
     def is_sudo(self):
         return 'sudo' in [role.role.name for role in self.user_roles]
+    @property
+    def is_self(self):
+        return self.id_public == request.cookies.get('user_id')
     

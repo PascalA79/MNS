@@ -4,9 +4,9 @@ from sqlalchemy import ForeignKey
 
 
 class DiscordUser(ApiModel):
-    __tablename__ = 'discordusers'
+    __tablename__ = 'discord_users'
     user_id = db.Column(db.Integer, ForeignKey('users.id'), nullable=False, unique=True)
-    discord_id = db.Column(db.String(80), unique=True, nullable=False)
+    id_discord = db.Column(db.String(80), unique=True, nullable=False)
 
     user = relationship("User", backref="discord_users", foreign_keys=[user_id])
 

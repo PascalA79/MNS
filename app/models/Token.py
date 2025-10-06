@@ -39,10 +39,6 @@ class Token(ApiModel):
             None
         """
         cls.__expiration = timedelta(days=days, seconds=seconds, minutes=minutes, hours=hours, weeks=weeks)
-    
-    # def get_expiration(cls):
-    #     expiration_date = cls.updated_at + __class__.__expiration
-    #     return expiration_date
 
     @classmethod
     def insert(cls, pseudo, password):
@@ -88,4 +84,9 @@ class Token(ApiModel):
     def allows_roles(*roles):
         headers = request.headers
         authorization = headers.get('Authorization')
+
+    @classmethod
+    def delete_expired_tokens(cls):
+        now = datetime.now()
+        cls.delete_where(expiration = {'<=':now})
 

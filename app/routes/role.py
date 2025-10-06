@@ -29,7 +29,7 @@ def getRole(role_id:uuid):
             },
             ApiConstant.Http.NOT_FOUND
         )
-    return dict(role)
+    return make_response(dict(role), ApiConstant.Http.OK, {'ETag': Role.get_eTag()})
 
 @role_blueprint.route('/<string:role_name>', methods=['GET'])
 def getRoleName(role_name:str):
@@ -42,7 +42,8 @@ def getRoleName(role_name:str):
             },
             ApiConstant.Http.NOT_FOUND
         )
-    return dict(record)
+    return make_response(dict(record), ApiConstant.Http.OK, {'ETag': Role.get_eTag()})
+
 @role_blueprint.route('/', methods=['GET'])
 def getRoles():
     role = Role()

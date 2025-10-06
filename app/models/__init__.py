@@ -23,6 +23,9 @@ from .events.Level import Level
 from .events.Player import Player
 from .events.PlayerTimer import PlayerTimer
 from .events.DiscordOwnerEvent import DiscordOwnerEvent
+from .Commande import Commande
+from .CommandeGuild import CommandeGuild
+from .CommandeGuildPermission import CommandeGuildPermission
 
 __all__ = [
     'ApiModel',
@@ -46,5 +49,8 @@ __all__ = [
     'Token',
     'User',
     'UserRole',
-    'UserStreamer'
+    'UserStreamer',
+    'Commande',
+    'CommandeGuild',
+    'CommandeGuildPermission'
 ]

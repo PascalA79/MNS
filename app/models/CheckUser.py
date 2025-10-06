@@ -34,6 +34,7 @@ class CheckUser(ApiModel):
     
     @classmethod
     def check_code(cls, user_id, code):
+        raise NotImplementedError("This method is not implemented yet")
         errors = CheckUser.create_api_errors()
         user:User = User.User.getOne(user_id)
         if not user:

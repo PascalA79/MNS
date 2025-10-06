@@ -6,8 +6,10 @@ async function createAdminPannel(){
     let allLevels = []
     let allEvents = []
     let allPlayers = []
-
-
+    let allChannels = {}
+    let allGuilds = {}
+    let alldiscord_id_users = {}
+    let allMentions = {}
     const eventsRequest = new Request('/api/events', {
         method: 'GET'
     });
@@ -81,7 +83,7 @@ async function createAdminPannel(){
     ];
 
     const fields_event = [
-        new Field({name:'name',displayName:'Name',changeable:true, validator: new Validation({ required:true, f_validate: (value)=>Validation.regex(value, /^[a-zA-Z0-9_]+$/)})}),
+        new Field({name:'name',displayName:'Name',changeable:true, validator: new Validation({ required:true, })}),
         new Field({name:'description', displayName:'Description',changeable:true, validator: new Validation({ required:true})}),
         new Field({name:'start_date',displayName:'Début',changeable:true, validator: new Validation({ required:true, type: Validation.Type.DATE_TIME})}),
         new Field({name:'user_id', displayName:'Organisateur',changeable:true, validator: new Validation({required:true, allowed_values: allUsers, is_multivalue:false})}),
@@ -90,28 +92,27 @@ async function createAdminPannel(){
     ]
 
     const fields_streamers = [
-        new Field({name:'pseudo', displayName:'Pseudo',changeable:false, validator: new Validation({ required:true, f_validate: (value)=>Validation.regex(value, /^[a-zA-Z0-9_]+$/)})}),
+        new Field({name:'pseudo', displayName:'Pseudo',changeable:false, validator: new Validation({ required:true})}),
         new Field({name:'id_twitch', displayName:'Twitch ID',changeable:false, fillable:false, validator: new Validation({required:false})})
     ];
     const fields_users = [
-        new Field({name:'pseudo', displayName:'Pseudo', validator: new Validation({ required:true, f_validate: (value)=>Validation.regex(value, /^[a-zA-Z0-9_]+$/)})}),
-        new Field({name:'password', displayName:'Mot de passe', changeable:false, validator: new Validation({required:true, f_validate: (value)=>Validation.regex(/^\S*$/)})}),
+        new Field({name:'pseudo', displayName:'Pseudo', validator: new Validation({ required:true, f_validate: (value)=>!Validation.regex(value, /^[a-zA-Z0-9_]+$/)})}),
+        new Field({name:'password', displayName:'Mot de passe', changeable:false, validator: new Validation({required:true})}),
         new Field({name:'roles', displayName:'Roles', validator: new Validation({required:false,  allowed_values:allRoles, is_multivalue:true})}),
         new Field({name:'streamer', displayName:'Streamer',changeable:true, validator: new Validation({required:false, allowed_values: allStreamers, is_multivalue:false})})
     ];
     const fields_roles = [
-        new Field({name:'name', displayName:'Nom',  validator: new Validation({ required:true, f_validate: (value)=>Validation.regex(value, /^[a-zA-Z0-9_]+$/)})})
+        new Field({name:'name', displayName:'Nom',  validator: new Validation({ required:true, f_validate: (value)=>!Validation.regex(value, /^[a-zA-Z0-9_]+$/)})})
     ]
     const fields_discord = [
-        new Field({name:'name', displayName:'Nom', changeable:true, validator: new Validation({required:true})}),
-        new Field({name:'id_guild', displayName:'Guild ID', changeable:true, validator: new Validation({required:true})}),
-        new Field({name:'id_channel', displayName:'Channel ID', changeable:true, validator: new Validation({required:true})}),
+        new Field({name:'id_guild', displayName:'Guild Name', changeable:false, validator: new Validation({required:true, is_multivalue:false, allowed_values:allGuilds})}),
+        new Field({name:'id_channel', displayName:'Channel Notif', changeable:true, validator: new Validation({required:false, is_multivalue:false, allowed_values:allChannels})}),
         new Field({name:'games', displayName:'Games', validator: new Validation({required:false,  allowed_values:allGames, is_multivalue:true})}),
         new Field({name:'streamers', displayName:'Streamers', validator: new Validation({required:false, allowed_values:allStreamers, is_multivalue:true})})
     ]
     const fields_games = [
         new Field({name:'name', displayName:'Nom', changeable:false, validator: new Validation({required:true})}),
-        new Field({name:'id_twitch', displayName:'Twitch ID', changeable:false, validator: new Validation({required:false})})
+        new Field({name:'id_twitch', displayName:'Twitch ID', changeable:false, fillable:false, validator: new Validation({required:false})})
     ]
     const fields_timer = [
         new Field({name:'event_id', displayName:'Event', changeable:false, validator: new Validation({required:true, allowed_values:allEvents, is_multivalue:false})}),
@@ -119,15 +120,36 @@ async function createAdminPannel(){
         new Field({name : 'level_id',displayName: 'Niveau', changeable:false, validator: new Validation({required:true, allowed_values:allLevels, is_multivalue:false})}),
         new Field({name:'timer', displayName:'Timer', changeable:true, validator: new Validation({required:true, type: Validation.Type.TIMER})})
     ]
-    
-    const crud_discord = new CRUD('discord_app', 'Discord','/api/discord/guild',
-        [CRUD.Action.DELETE, CRUD.Action.UPDATE, CRUD.Action.CREATE, CRUD.Action.READ], function(data){
-        let formated_data_game = DataFormator.join(data.guilds, allGames, data.games, 'discord_id', 'game_id', 'games')
-        let formated_data_streamer = DataFormator.join(formated_data_game, allStreamers, data.streamers, 'discord_id', 'streamer_id', 'streamers')
-        return DataFormator.reduce(formated_data_streamer, 'discord_id')
+    const field_discord_user = [
+        new Field({name:'user_id', displayName:'Pseudo', changeable:false, validator: new Validation({required:true})}),
+        new Field({name:'id_discord', displayName:'Discord ID', changeable:true, validator: new Validation({required:false, is_multivalue:false, allowed_values:alldiscord_id_users})}),
+        new Field({name:'id_guild', displayName:'Guild Owner', changeable:true, validator: new Validation({required:true, is_multivalue:true, allowed_values:allGuilds})}),
+    ]
+    const fields_command_permissions = [
+        new Field({name:'guild_id', displayName:'Guild', changeable:false, validator: new Validation({required:true})}),
+        new Field({name:'command_id', displayName:'Commande', changeable:false, validator: new Validation({required:true})}),
+        new Field({name:'allow_permissions', displayName:'Allow Permissions', changeable:true, validator: new Validation({required:false, is_multivalue:true, allowed_values:allMentions})}),
+        new Field({name:'deny_permissions', displayName:'Deny Permissions', changeable:true, validator: new Validation({required:false, is_multivalue:true, allowed_values:allMentions})}),
+    ];
+    Formulaire.setReadyFlag(false)
+    const crud_discord = new Formulaire('discord_app', 'Discord','/api/discord/guild',
+        [Formulaire.Action.DELETE, Formulaire.Action.UPDATE, Formulaire.Action.READ], function(data){
+        let formated_data_game = DataFormator.join(data.guilds, allGames, data.games, 'discord_app_id', 'game_id', 'games')
+        let formated_data_streamer = DataFormator.join(formated_data_game, allStreamers, data.streamers, 'discord_app_id', 'streamer_id', 'streamers')
+        allChannels = data.discord_channels
+        allGuilds = data.discord_names
+        fields_discord.find(field=>field.name=='id_channel').validator.allowed_values = allChannels
+        fields_discord.find(field=>field.name=='id_guild').validator.allowed_values = allGuilds
+        let all_channel = {}
+        let all_guild = {}
+        all_channel = DataFormator.assign(...Object.values(allChannels))
+        all_guild = DataFormator.assign(...Object.values(allGuilds))
+        DataFormator.replace(formated_data_streamer, all_channel, 'id_channel')
+        DataFormator.replace(formated_data_streamer, all_guild, 'id_guild')
+        return DataFormator.reduce(formated_data_streamer, 'discord_app_id')
     }, ...fields_discord)
-    const crud_streamer = new CRUD('streamers', 'Streamers','/api/streamers',
-        [CRUD.Action.DELETE, CRUD.Action.UPDATE, CRUD.Action.CREATE, CRUD.Action.READ], function(data){
+    const crud_streamer = new Formulaire('streamers', 'Streamers','/api/streamers',
+        [Formulaire.Action.DELETE, Formulaire.Action.UPDATE, Formulaire.Action.CREATE, Formulaire.Action.READ], function(data){
         this.state = this.state ? this.state : false
         if(this.state){
             allStreamers = DataFormator.convert_to_multivalue(data.streamers, 'streamer_id', 'pseudo')
@@ -139,8 +161,8 @@ async function createAdminPannel(){
         this.state = true
         return DataFormator.reduce(data.streamers, 'streamer_id')
     }, ...fields_streamers)
-    const crud_event = new CRUD('events', 'Events', '/api/events',
-        [CRUD.Action.UPDATE, CRUD.Action.CREATE, CRUD.Action.READ],
+    const crud_event = new Formulaire('events', 'Events', '/api/events',
+        [Formulaire.Action.UPDATE, Formulaire.Action.CREATE, Formulaire.Action.READ],
         function(data){
         this.state = this.state ? this.state : false 
         let formated_data_level = DataFormator.join(data.events, allLevels, data.event_levels, 'event_id', 'level_id', 'levels')
@@ -156,8 +178,8 @@ async function createAdminPannel(){
         this.state = true
         return DataFormator.reduce(formated_data_player, 'event_id')
     }, ...fields_event)
-    const crud_timers = new CRUD('timers', 'Timers', '/api/events/timers',
-        [CRUD.Action.DELETE, CRUD.Action.UPDATE, CRUD.Action.READ], function(data){
+    const crud_timers = new Formulaire('timers', 'Timers', '/api/events/timers',
+        [Formulaire.Action.DELETE, Formulaire.Action.UPDATE, Formulaire.Action.READ], function(data){
         DataFormator.replace(data.timers, allEvents, 'event_id')
         DataFormator.replace(data.timers, allLevels, 'level_id')
         DataFormator.replace(data.timers, allPlayers, 'player_id')
@@ -165,8 +187,8 @@ async function createAdminPannel(){
         return DataFormator.reduce(data.timers, 'timer_id')
     },
     ...fields_timer)
-    const crud_game = new CRUD('games', 'Games','/api/games',
-        [CRUD.Action.DELETE, CRUD.Action.UPDATE, CRUD.Action.CREATE, CRUD.Action.READ], function(data){
+    const crud_game = new Formulaire('games', 'Games','/api/games',
+        [Formulaire.Action.DELETE, Formulaire.Action.UPDATE, Formulaire.Action.CREATE, Formulaire.Action.READ], function(data){
         this.state = this.state ? this.state : false
         if(this.state){
             allGames = DataFormator.convert_to_multivalue(data.games, 'game_id', 'name')
@@ -176,8 +198,8 @@ async function createAdminPannel(){
         this.state = true
         return DataFormator.reduce(data.games, 'game_id')
     }, ...fields_games)
-    const crud_user = new CRUD('users', 'Users','/api/users',
-        [CRUD.Action.DELETE, CRUD.Action.UPDATE, CRUD.Action.CREATE, CRUD.Action.READ], function(data){
+    const crud_user = new Formulaire('users', 'Users','/api/users',
+        [Formulaire.Action.DELETE, Formulaire.Action.UPDATE, Formulaire.Action.CREATE, Formulaire.Action.READ], function(data){
         this.state = this.state ? this.state : false
         let formated_data_role = DataFormator.join(data.users, allRoles, data.user_roles, 'user_id', 'role_id', 'roles')
         DataFormator.join(formated_data_role, allStreamers, data.streamers, 'user_id', 'streamer_id', 'streamer')
@@ -200,8 +222,8 @@ async function createAdminPannel(){
         this.state = true
         return DataFormator.reduce(formated_data_role, 'user_id')
     }, ...fields_users)
-    const crud_role = new CRUD('roles', 'Roles','/api/roles',
-        [CRUD.Action.DELETE, CRUD.Action.UPDATE, CRUD.Action.CREATE, CRUD.Action.READ], function(data){
+    const crud_role = new Formulaire('roles', 'Roles','/api/roles',
+        [Formulaire.Action.DELETE, Formulaire.Action.CREATE, Formulaire.Action.READ], function(data){
         this.state = this.state ? this.state : false 
         if(this.state){
             allRoles = DataFormator.convert_to_multivalue(data.roles, 'role_id', 'name')
@@ -212,9 +234,35 @@ async function createAdminPannel(){
         return DataFormator.reduce(data.roles, 'role_id')
     }, ...fields_roles)
 
+    const crud_command_permissions = new Formulaire('command_permissions', 'Command Permissions', '/api/commands',
+        [Formulaire.Action.UPDATE, Formulaire.Action.READ],
+        function(data) {
+            let all_mentions = {}
+            data.command_guilds.forEach(command_guild => {
+                all_mentions[command_guild['command_guild_id']] = data.all_mentions[command_guild['guild_id']]
+                let allow_permissions = Object.values(data.command_guild_permissions).filter(perm=>{
+                    return perm.allow_permission && perm.command_guild_id == command_guild.command_guild_id;
+                })
+                let deny_permissions = Object.values(data.command_guild_permissions).filter(perm=>{
+                    return !perm.allow_permission && perm.command_guild_id == command_guild.command_guild_id;
+                })
+                command_guild['allow_permissions'] = allow_permissions.map(item=>data.all_mentions[command_guild.guild_id][item.permission])
+                command_guild['deny_permissions'] = deny_permissions.map(item=>data.all_mentions[command_guild.guild_id][item.permission])
+                command_guild['guild_id'] = data.discord_names[command_guild.guild_id]
+                command_guild['command_id'] = data.commands[command_guild.command_id].name
+            })
+            // trier all_mentions par ordre alphabétique
+            debugger
+            allMentions = all_mentions
+            fields_command_permissions.find(field=>field.name=='allow_permissions').validator.allowed_values = allMentions
+            fields_command_permissions.find(field=>field.name=='deny_permissions').validator.allowed_values = allMentions
+            return DataFormator.reduce(data.command_guilds, 'command_guild_id');
+        },
+        ...fields_command_permissions
+    );
 
-    const crud_level = new CRUD('levels', 'Levels', '/api/events/levels',
-        [CRUD.Action.DELETE, CRUD.Action.CREATE, CRUD.Action.READ], function(data){
+    const crud_level = new Formulaire('levels', 'Levels', '/api/events/levels',
+        [Formulaire.Action.DELETE, Formulaire.Action.CREATE, Formulaire.Action.READ], function(data){
         this.state = this.state ? this.state : false
 
         if(this.state){
@@ -225,6 +273,19 @@ async function createAdminPannel(){
         this.state = true
         return DataFormator.reduce(data.levels, 'level_id')
     }, ...fields_levels)
+    crud_streamer.sortData(new Validation.SortItem('pseudo',Validation.SortDirection.ASC))
+    crud_timers.sortData(
+        new Validation.SortItem('player_id',Validation.SortDirection.ASC),
+        new Validation.SortItem('timer',Validation.SortDirection.ASC),
+        new Validation.SortItem('level_id',Validation.SortDirection.ASC),
+        new Validation.SortItem('event_id',Validation.SortDirection.ASC),
+    )
+    crud_command_permissions.sortData(
+        
+        new Validation.SortItem('command_id',Validation.SortDirection.ASC),
+        new Validation.SortItem('guild_id',Validation.SortDirection.ASC)
+    )
+    Formulaire.setReadyFlag(true)
     crud_event.start_partial_refresh()
     crud_timers.start_partial_refresh()
     crud_user.start_partial_refresh()
@@ -233,4 +294,5 @@ async function createAdminPannel(){
     crud_streamer.start_partial_refresh()
     crud_game.start_partial_refresh()
     crud_level.start_partial_refresh()
+    crud_command_permissions.start_partial_refresh()
 }

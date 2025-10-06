@@ -56,7 +56,7 @@ def getGame(game_id:uuid):
                 },
                 'status':False
             }, ApiConstant.Http.NOT_FOUND)
-    return {'game':dict(game), 'status':True}
+    return make_response({'game':dict(game), 'status':True}, ApiConstant.Http.OK, {'ETag': Game.get_eTag()})
 
 @game_blueprint.route('/', methods=['GET'])
 def getGames():

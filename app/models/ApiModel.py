@@ -5,8 +5,10 @@ from utility import dict_merge, split_string, convert_to_int_if_possible, get_at
 from sqlalchemy.schema import UniqueConstraint
 from typing import Self
 from DecoderQuery import DecoderQuery, QueryObject
+from sqlalchemy import and_, or_
       
 class ApiModel(db.Model):
+    
     
     @staticmethod
     def create_api_errors():
@@ -41,7 +43,12 @@ class ApiModel(db.Model):
     # deleted_at = db.Column(db.DateTime, default=None, nullable=True)
     __column_dict:dict = None
     __column_sub_resource:dict = None
+    __is_in_migration = False
 
+    @classmethod
+    def set_is_in_migration(cls, value:bool):
+        cls.is_in_migration = bool(value)
+    
     @classmethod
     def renew_eTag(cls):
         cls.__eTag = uuid.uuid4()
@@ -69,8 +76,9 @@ class ApiModel(db.Model):
                         else:
                             continue  # Continuer à parcourir les sous-classes si l'attribut n'est pas trouvé
                         break  # Sortir de la boucle externe si l'attribut est trouvé
-                else:
-                    raise ValueError(f"{column} does not exist in {cls.__name__}")
+                    else:
+                        if(not cls.__is_in_migration):
+                            raise ValueError(f"{column} does not exist in {cls.__name__}")
 
     @classmethod
     def set_dict_key(cls,convert_column:dict):
@@ -104,11 +112,6 @@ class ApiModel(db.Model):
 
     @classmethod
     def getOne(cls, id_public)->Self|None:
-        # decoder_query = DecoderQuery(cls)
-        # query = QueryObject('id_public', id_public)
-        # decoder_query.add_query(query)
-        # decoder_result = decoder_query.search()
-        # return decoder_result.pop(0) if decoder_result else None
         result = cls.query.filter_by(id_public=str(id_public)).first()
         return result    
     
@@ -116,7 +119,7 @@ class ApiModel(db.Model):
     def getAll(cls, **fields:str)->list[Self]:
         decoder_query = DecoderQuery(cls)
         for field, query in fields.items():
-            query = QueryObject(field, query)
+            query = QueryObject(field, str(query))
             decoder_query.add_query(query)
         return decoder_query.search()
 
@@ -193,33 +196,38 @@ class ApiModel(db.Model):
             return False
         db.session.delete(item)
         db.session.commit()
+        cls.renew_eTag()
         return bool(item)
     
     @classmethod
     def delete_where(cls, **conditions):
-        """
-        Deletes records in the table that match the given conditions.
+        session = db.session
+        query = session.query(cls)
         
-        :param conditions: SQLAlchemy filter conditions as keyword arguments.
-        :return: The number of records deleted.
-        """
-        try:
-            # Filter records matching the conditions
-            query = cls.query.filter_by(**conditions)
-            
-            # Count the number of records to be deleted
-            count = query.count()
-            
-            if count > 0:
-                # Delete the records
-                query.delete(synchronize_session=False)
-                db.session.commit()
-            
-            return count
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error during deletion: {e}")
-            return 0
+        filters = []
+        for field, condition in conditions.items():
+            if isinstance(condition, dict):
+                for op, value in condition.items():
+                    if op == 'eq' or op == '==':
+                        filters.append(getattr(cls, field) == value)
+                    elif op == 'ne' or op == '!=':
+                        filters.append(getattr(cls, field) != value)
+                    elif op == 'lt' or op == '<':
+                        filters.append(getattr(cls, field) < value)
+                    elif op == 'le' or op == '<=':
+                        filters.append(getattr(cls, field) <= value)
+                    elif op == 'gt' or op == '>':
+                        filters.append(getattr(cls, field) > value)
+                    elif op == 'ge' or op == '>=':
+                        filters.append(getattr(cls, field) >= value)
+            else:
+                filters.append(getattr(cls, field) == condition)
+        
+        query = query.filter(and_(*filters))
+        deleted_count = query.delete(synchronize_session=False)
+        session.commit()
+        cls.renew_eTag()
+        return deleted_count
 
     
     def validate(self, data:dict, item_id = None):

@@ -52,7 +52,7 @@ def getStreamer(streamer_id:uuid):
                 },
                 'status':False
             }, ApiConstant.Http.NOT_FOUND)
-    return {'streamer':dict(streamers), 'status':True}
+    return make_response({'streamer':dict(streamers), 'status':True}, ApiConstant.Http.OK, {'ETag': Streamer.get_eTag()})
 
 @streamer_blueprint.route('/', methods=['GET'])
 def getStreamers():
@@ -82,6 +82,8 @@ def deleteStreamer(streamer_id:uuid):
     streamer = Streamer().getOne(streamer_id)
     for discord_streamer in streamer.discord_streamers:
         discord_streamer.delete(discord_streamer.id_public)
+    for user_streamer in streamer.user_streamers:
+        user_streamer.delete(user_streamer.id_public)
     result =  streamer.delete(streamer_id)
     return make_response({'status': result}, ApiConstant.Http.OK if result else ApiConstant.Http.NOT_FOUND)
 

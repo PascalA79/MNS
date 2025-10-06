@@ -8,6 +8,7 @@ def get_info_user():
     registration = Token().getOne(token)
     info = {
         'pseudo':registration.user.pseudo if registration else '',
+        'user_id':registration.user.id_public if registration else '',
         'roles':[user_role.role.name for user_role in registration.user.user_roles] if registration else []
     }
     return info
@@ -19,10 +20,10 @@ def register_static(app:Flask):
         if not filename.startswith('scripts') and not filename.startswith('favicon.ico') and not filename.startswith('css'):
             info = get_info_user()
             try:
-                if filename.startswith('admin') and not 'admin' in info['roles'] and not 'verified' in info['roles']:
+                if filename.startswith('admin') and not 'admin' in info['roles']:
                     abort(ApiConstant.Http.FORBIDDEN)
 
-                if filename.startswith('user') and not 'verified' in info['roles']:
+                if filename.startswith('user') and not info['user_id']:
                     abort(ApiConstant.Http.UNAUTHORIZED)
                 return render_template(filename, **info) 
             except TemplateNotFound as e:

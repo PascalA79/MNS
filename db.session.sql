@@ -1,0 +1,1 @@
+drop table commandes_guild_permissions;

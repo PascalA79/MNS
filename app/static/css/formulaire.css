@@ -15,6 +15,7 @@ table {
     width: auto;
     display: flex;
     flex-direction: row;
+
 }
 .crud td > div > *, .crud th > div > * {
     width: 100%;
@@ -44,7 +45,7 @@ table {
 .crud .multichoice:has(.message_error){
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    /*grid-template-columns: 1fr 1fr 1fr;*/
 }
 .crud *{
     vertical-align: top;

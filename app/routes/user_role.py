@@ -38,12 +38,12 @@ def getUserRole(user_role_id:uuid):
     roles = {}
     users.update(user_role.user.to_sub_resource())
     roles.update(user_role.role.to_sub_resource())
-    return {
+    return make_response({
         'user_roles':dict(user_role),
         'users': users,
         'roles': roles,
         'status':True
-    }
+    }, ApiConstant.Http.OK, {'ETag': UserRole.get_eTag()})
 
 @user_role_blueprint.route('/user/<uuid:user_id>', methods=['GET'])
 def getRole_User(user_id:uuid):
@@ -70,12 +70,12 @@ def getRole_User(user_id:uuid):
     for user_role in user_roles:
         users.update(user_role.user.to_sub_resource())
         roles.update(user_role.role.to_sub_resource())
-    return {
+    return make_response({
         'user_roles':[dict(user_role) for user_role in user_roles],
         'users': users,
         'roles': roles,
         'status':True
-    }
+    }, ApiConstant.Http.OK, {'ETag': UserRole.get_eTag()})
 
 @user_role_blueprint.route('/role/<uuid:role_id>', methods=['GET'])
 def getUser_Role(role_id:uuid):
@@ -105,12 +105,12 @@ def getUser_Role(role_id:uuid):
         for role in user_role.user.user_roles:
             if not str(role.id_public) in roles.keys():
                 roles.update(role.role.to_sub_resource())
-    return {
+    return make_response({
         'user_roles':[dict(user_role) for user_role in user_roles_set],
         'users': users,
         'roles': roles,
         'status':True
-    }
+    }, ApiConstant.Http.OK, {'ETag': UserRole.get_eTag()})
 
 @user_role_blueprint.route('/', methods=['GET'])
 def getUserRoles():

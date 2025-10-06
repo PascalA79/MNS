@@ -1,14 +1,21 @@
 $('body').ready(function(){
-    handleFormSubmit('loginForm', null,
-        async response=>{
-            response.json().then(data=>{
-                let token = data.value
-                if(token){
-                    setToken(token)
+   login();
+
+})
+function login(){
+    const fields_connection = [
+        new Field({name:'pseudo', displayName:'Pseudo', changeable:true, validator: new Validation({required:true})}),
+        new Field({name:'password', displayName:'Mot de passe', changeable:true, validator: new Validation({required:true, type: Validation.Type.PASSWORD})})
+    ]
+    const crud_connection = new Formulaire('connection', 'Connection', '/token',
+        {[Formulaire.Action.CREATE]:(data)=>{
+            data.then(token=>{
+                if(token.value){
+                    setToken(token.value)
                     document.location.assign('/user/index.html')
                 }
             })
-        },
-        async response=>console.log(await response.json()));
-
-})
+        }}, function(data){
+        return data
+    }, ...fields_connection)
+}

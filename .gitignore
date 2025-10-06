@@ -165,6 +165,7 @@ cython_debug/
 #.idea/
 
 bd_event.png
+commande_twitch.png
 
 app/static/images/creator
 app/static/images/levels
